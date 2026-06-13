@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Профіль · БанкГео Поділля</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+<link rel="apple-touch-icon" href="favicon-192.png">
+<script src="db.js"></script>
+<script src="auth-guard.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#00915A;--green-dark:#00583C;--green-mid:#00A878;
+    --teal:#0FB89B;--gold:#E0A93B;--lime:#7BD389;
+    --ink:#12211B;--muted:#5C6E66;
+    --bg:#EFF5F2;--card:#FFFFFF;--border:#D7E4DD;
+    --danger:#C0392B;
+    --shadow:0 12px 34px rgba(0,88,60,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Manrope','Segoe UI',sans-serif;color:var(--ink);
+    background:var(--bg);min-height:100vh;padding:32px 22px 60px;
+  }
+  .wrap{max-width:760px;margin:0 auto}
+
+  .top{
+    display:flex;align-items:center;gap:14px;margin-bottom:22px;
+    color:var(--green-dark);
+  }
+  .top a{
+    color:var(--green-dark);text-decoration:none;font-weight:800;font-size:13px;
+    padding:7px 14px;border:1px solid var(--border);border-radius:9px;background:#fff;
+    transition:.15s;
+  }
+  .top a:hover{border-color:var(--green);background:#F0F7F3}
+  .top h1{font-size:18px;font-weight:800;flex:1}
+  .top-logo{height:28px;width:auto;display:block;margin-right:4px}
+
+  /* Картка профілю */
+  .profile-card{
+    background:#fff;border:1px solid var(--border);border-radius:18px;
+    padding:28px;margin-bottom:18px;box-shadow:var(--shadow);
+    position:relative;overflow:hidden;
+  }
+  .profile-card::before{
+    content:"";position:absolute;left:0;right:0;top:0;height:4px;
+    background:linear-gradient(90deg,var(--gold) 0%,var(--teal) 50%,var(--green) 100%);
+  }
+  .profile-head{display:flex;align-items:center;gap:18px;margin-bottom:22px;flex-wrap:wrap}
+  .big-avatar{
+    width:74px;height:74px;border-radius:50%;flex:none;
+    background:linear-gradient(135deg,var(--green-dark),var(--teal));
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:26px;overflow:hidden;
+    box-shadow:0 6px 18px rgba(0,88,60,.20);
+  }
+  .big-avatar img{width:100%;height:100%;object-fit:cover}
+  .profile-head h2{font-size:22px;font-weight:800;color:var(--green-dark);line-height:1.2}
+  .profile-head .email-row{color:var(--muted);font-size:13.5px;font-weight:600;margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .src-badge{
+    display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
+    font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;
+  }
+  .src-badge.google{background:#E8F1FE;color:#1A56DB}
+  .src-badge.password{background:#EAF6F0;color:var(--green-dark)}
+
+  .section-title{
+    font-size:11px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
+    color:var(--green-dark);margin-bottom:12px;display:flex;align-items:center;gap:8px;
+  }
+  .section-title::before{content:"";width:18px;height:2px;background:var(--gold);border-radius:2px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  @media(max-width:520px){ .grid2{grid-template-columns:1fr} }
+
+  .field{display:flex;flex-direction:column;gap:5px}
+  label{font-size:11px;font-weight:800;color:var(--green-dark);letter-spacing:1px;text-transform:uppercase}
+  input{
+    width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;
+    font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);
+    transition:.15s;background:#FAFCFB;
+  }
+  input:focus{outline:none;border-color:var(--green);background:#fff;box-shadow:0 0 0 3px rgba(0,145,90,.12)}
+  input:disabled{background:#F0F4F2;color:var(--muted);cursor:not-allowed}
+  input::placeholder{color:#9DB1A8;font-weight:500}
+
+  .password-wrap{position:relative}
+  .password-wrap input{padding-right:42px}
+  .toggle-pw{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);
+    padding:4px 8px;border-radius:6px;transition:.12s;
+  }
+  .toggle-pw:hover{background:#F0F4F2;color:var(--green-dark)}
+
+  .btn{
+    padding:11px 18px;border:none;border-radius:10px;
+    font-family:inherit;font-weight:800;font-size:13.5px;cursor:pointer;transition:.15s;
+    display:inline-flex;align-items:center;gap:7px;letter-spacing:.3px;
+  }
+  .btn-primary{background:linear-gradient(135deg,var(--green),var(--teal));color:#fff}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,145,90,.30)}
+  .btn-ghost{background:#fff;color:var(--ink);border:1px solid var(--border)}
+  .btn-ghost:hover{border-color:var(--green);background:#F0F7F3}
+  .btn-danger{background:#fff;color:var(--danger);border:1px solid var(--border)}
+  .btn-danger:hover{background:#FDECEA;border-color:#F1B0AA}
+  .btn:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+  .row-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+  .note{
+    border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;margin-top:14px;
+    display:flex;align-items:flex-start;gap:9px;
+  }
+  .note .ico{font-size:16px;line-height:1;flex:none;margin-top:1px}
+  .note.ok{background:#EAF6F0;border:1px solid #CFE5DA;color:var(--green-dark)}
+  .note.err{background:#FDECEA;border:1px solid #F1B0AA;color:var(--danger)}
+  .note.warn{background:#FFF6E5;border:1px solid #F0DFB6;color:#8C5E0A}
+
+  /* Картка історії */
+  .history-card{
+    background:#fff;border:1px solid var(--border);border-radius:18px;
+    padding:24px;margin-bottom:18px;box-shadow:var(--shadow);
+  }
+  .history-row{
+    display:flex;align-items:center;gap:12px;padding:10px 12px;
+    border:1px solid var(--border);border-radius:10px;background:#FAFCFB;margin-bottom:6px;
+    font-size:13px;
+  }
+  .history-row:last-child{margin-bottom:0}
+  .history-row .dt{font-weight:700;color:var(--green-dark);min-width:130px}
+  .history-row .ua{color:var(--muted);font-size:11.5px;flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .history-empty{color:var(--muted);font-size:13px;font-weight:600;padding:10px;text-align:center}
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="top">
+    <a href="index.html" aria-label="БанкГео — на головну"><img src="logo.png" class="top-logo" alt="БанкГео"></a>
+    <h1>Профіль</h1>
+    <a href="index.html">← Назад до сайту</a>
+  </div>
+
+  <!-- Картка профілю -->
+  <div class="profile-card">
+    <div class="profile-head">
+      <div class="big-avatar" id="avatar"></div>
+      <div>
+        <h2 id="fullName">—</h2>
+        <div class="email-row">
+          <span id="emailDisplay">—</span>
+          <span class="src-badge" id="srcBadge"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Особисті дані</div>
+    <form id="profileForm">
+      <div class="grid2">
+        <div class="field">
+          <label for="firstName">Імʼя</label>
+          <input id="firstName" type="text" maxlength="50">
+        </div>
+        <div class="field">
+          <label for="lastName">Прізвище</label>
+          <input id="lastName" type="text" maxlength="50">
+        </div>
+        <div class="field">
+          <label for="emailField">Email (не змінюється)</label>
+          <input id="emailField" type="email" disabled>
+        </div>
+        <div class="field">
+          <label for="createdAt">Зареєстровано</label>
+          <input id="createdAt" type="text" disabled>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button type="submit" class="btn btn-primary">💾 Зберегти зміни</button>
+      </div>
+      <div id="profileNote"></div>
+    </form>
+  </div>
+
+  <!-- Картка зміни пароля -->
+  <div class="profile-card" id="passwordCard">
+    <div class="section-title">Зміна пароля</div>
+    <form id="passwordForm">
+      <div class="grid2">
+        <div class="field">
+          <label for="oldPw">Поточний пароль</label>
+          <div class="password-wrap">
+            <input id="oldPw" type="password" minlength="8" required>
+            <button type="button" class="toggle-pw" data-t="oldPw">👁</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="newPw">Новий пароль</label>
+          <div class="password-wrap">
+            <input id="newPw" type="password" minlength="8" required>
+            <button type="button" class="toggle-pw" data-t="newPw">👁</button>
+          </div>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label for="newPw2">Повторіть новий пароль</label>
+          <div class="password-wrap">
+            <input id="newPw2" type="password" minlength="8" required>
+            <button type="button" class="toggle-pw" data-t="newPw2">👁</button>
+          </div>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button type="submit" class="btn btn-primary">🔑 Змінити пароль</button>
+      </div>
+      <div id="pwNote"></div>
+    </form>
+  </div>
+
+  <!-- Історія -->
+  <div class="history-card">
+    <div class="section-title">Історія входів (останні 10)</div>
+    <div id="historyList"></div>
+  </div>
+
+  <!-- Небезпечні дії -->
+  <div class="profile-card">
+    <div class="section-title">Безпека</div>
+    <div class="row-actions">
+      <button type="button" class="btn btn-ghost" id="forgetBtn">🧹 Прибрати з памʼяті цього компʼютера</button>
+      <button type="button" class="btn btn-danger" id="logoutBtn">⎋ Вийти з системи</button>
+    </div>
+    <div class="note ok" style="margin-top:12px">
+      <span class="ico">🔒</span>
+      <span>Ваш пароль зберігається у захищеному вигляді. Навіть адміністратор не може його прочитати.</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const escapeHTML = s => String(s).replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+
+/* auth-guard.js гарантує, що ми тут лише за наявності валідної сесії.
+   Беремо її з sessionStorage напряму. */
+const session = JSON.parse(sessionStorage.getItem("ukrsib_auth"));
+const user = Db.users.findByEmail(session.email) || {
+  email: session.email,
+  firstName: session.firstName || "",
+  lastName: session.lastName || "",
+  source: session.source,
+  avatar: session.picture,
+  createdAt: new Date(session.issued).toISOString(),
+  lastLoginAt: new Date(session.issued).toISOString(),
+  passwordHash: null,
+};
+
+/* ─── Рендер шапки профілю ─── */
+function fmtDate(iso){
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString("uk-UA", { day:"2-digit", month:"long", year:"numeric", hour:"2-digit", minute:"2-digit" });
+}
+function fmtRemaining(ms){
+  if (ms <= 0) return "—";
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  if (h >= 24) return Math.floor(h/24) + " дн";
+  if (h > 0) return `${h} год ${m} хв`;
+  return `${m} хв`;
+}
+
+function renderHeader(){
+  const fn = user.firstName || session.firstName || "";
+  const ln = user.lastName  || session.lastName  || "";
+  const fullName = `${fn} ${ln}`.trim() || user.email;
+  $("fullName").textContent = fullName;
+  $("emailDisplay").textContent = user.email;
+
+  const badge = $("srcBadge");
+  badge.className = "src-badge " + user.source;
+  badge.textContent = user.source === "google" ? "Google" : "Email";
+
+  const initials = (fullName || user.email).split(/\s+/).slice(0,2)
+    .map(s => s.charAt(0).toUpperCase()).join("") || "U";
+  $("avatar").innerHTML = user.avatar
+    ? `<img src="${escapeHTML(user.avatar)}" alt="" referrerpolicy="no-referrer">`
+    : initials;
+
+  $("firstName").value = fn;
+  $("lastName").value  = ln;
+  $("emailField").value = user.email;
+  $("createdAt").value = fmtDate(user.createdAt);
+}
+renderHeader();
+
+/* ─── Історія входів ─── */
+function renderHistory(){
+  const list = Db.logins.forEmail(user.email).slice(0, 10);
+  if (!list.length){
+    $("historyList").innerHTML = `<div class="history-empty">Поки що історія порожня — це ваш перший вхід.</div>`;
+    return;
+  }
+  $("historyList").innerHTML = list.map(h => {
+    const src = h.source === "google" ? "Google" : "Email";
+    return `
+      <div class="history-row">
+        <span class="dt">${fmtDate(h.timestamp)}</span>
+        <span class="src-badge ${h.source}">${src}</span>
+        <span class="ua" title="${escapeHTML(h.ua||"")}">${escapeHTML((h.ua||"").slice(0,60))}</span>
+      </div>`;
+  }).join("");
+}
+renderHistory();
+
+/* ─── Сховати картку пароля для юзерів без пароля (Google) ─── */
+if (user.source !== "password" || !user.passwordHash){
+  $("passwordCard").style.display = "none";
+}
+
+/* ─── Збереження профілю ─── */
+$("profileForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const fn = $("firstName").value.trim();
+  const ln = $("lastName").value.trim();
+  const res = Db.users.update(user.email, { firstName: fn, lastName: ln });
+  if (!res.ok){
+    $("profileNote").innerHTML = `<div class="note err"><span class="ico">⛔</span>${escapeHTML(res.error)}</div>`;
+    return;
+  }
+  // Оновлюємо сесію
+  const s = JSON.parse(sessionStorage.getItem("ukrsib_auth"));
+  s.firstName = fn; s.lastName = ln; s.name = `${fn} ${ln}`.trim();
+  sessionStorage.setItem("ukrsib_auth", JSON.stringify(s));
+  if (localStorage.getItem("ukrsib_auth_persistent")){
+    localStorage.setItem("ukrsib_auth_persistent", JSON.stringify(s));
+  }
+  user.firstName = fn; user.lastName = ln;
+  renderHeader();
+  $("profileNote").innerHTML = `<div class="note ok"><span class="ico">✓</span>Профіль збережено</div>`;
+  setTimeout(() => $("profileNote").innerHTML = "", 3000);
+});
+
+/* ─── Зміна пароля ─── */
+document.querySelectorAll(".toggle-pw").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const i = $(btn.dataset.t);
+    i.type = i.type === "password" ? "text" : "password";
+    btn.textContent = i.type === "password" ? "👁" : "🙈";
+  });
+});
+
+$("passwordForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const old = $("oldPw").value;
+  const np  = $("newPw").value;
+  const np2 = $("newPw2").value;
+  if (np !== np2){
+    $("pwNote").innerHTML = `<div class="note err"><span class="ico">⛔</span>Новий пароль і його повтор не співпадають.</div>`;
+    return;
+  }
+  if (np.length < 8){
+    $("pwNote").innerHTML = `<div class="note err"><span class="ico">⛔</span>Мінімум 8 символів.</div>`;
+    return;
+  }
+  if (np === old){
+    $("pwNote").innerHTML = `<div class="note warn"><span class="ico">⚠</span>Новий пароль збігається з поточним.</div>`;
+    return;
+  }
+  const res = await Db.users.changePassword(user.email, old, np);
+  if (!res.ok){
+    $("pwNote").innerHTML = `<div class="note err"><span class="ico">⛔</span>${escapeHTML(res.error)}</div>`;
+    return;
+  }
+  $("oldPw").value = $("newPw").value = $("newPw2").value = "";
+  $("pwNote").innerHTML = `<div class="note ok"><span class="ico">✓</span>Пароль успішно змінено</div>`;
+  setTimeout(() => $("pwNote").innerHTML = "", 3500);
+});
+
+/* ─── Прибрати з пам'яті + вихід ─── */
+$("forgetBtn").addEventListener("click", () => {
+  Db.remembered.remove(user.email);
+  alert("Акаунт прибраний зі списку нещодавніх на цьому компʼютері.");
+});
+$("logoutBtn").addEventListener("click", () => {
+  if (window.UkrSibAuth) window.UkrSibAuth.logout();
+  else {
+    sessionStorage.removeItem("ukrsib_auth");
+    localStorage.removeItem("ukrsib_auth_persistent");
+    location.href = "login.html?logout=1";
+  }
+});
+</script>
+
+</body>
+</html>

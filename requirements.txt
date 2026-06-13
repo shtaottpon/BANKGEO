@@ -1,0 +1,6 @@
+pandas>=2.0
+openpyxl>=3.1
+geopy>=2.4
+folium>=0.15
+streamlit>=1.32
+streamlit-folium>=0.18

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Реєстрація · БанкГео Поділля · УКРСИББАНК</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+<link rel="apple-touch-icon" href="favicon-192.png">
+<script src="db.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#00915A;--green-dark:#00583C;--green-mid:#00A878;
+    --teal:#0FB89B;--gold:#E0A93B;--lime:#7BD389;
+    --ink:#12211B;--muted:#5C6E66;
+    --bg:#EFF5F2;--card:#FFFFFF;--border:#D7E4DD;
+    --danger:#C0392B;
+    --shadow:0 12px 34px rgba(0,88,60,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Manrope','Segoe UI',sans-serif;color:var(--ink);
+    min-height:100vh;display:flex;align-items:safe center;justify-content:center;
+    padding:32px 24px;
+    background:
+      radial-gradient(900px 500px at 85% -10%,rgba(15,184,155,.32),transparent 60%),
+      radial-gradient(700px 400px at 10% 110%,rgba(224,169,59,.18),transparent 60%),
+      linear-gradient(135deg,var(--green-dark) 0%,var(--green) 55%,var(--green-mid) 100%);
+    background-attachment:fixed;position:relative;
+  }
+  body::before,body::after{
+    content:"";position:absolute;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle,rgba(255,255,255,.08),transparent 70%);
+  }
+  body::before{width:520px;height:520px;top:-180px;right:-120px}
+  body::after{width:380px;height:380px;bottom:-160px;left:-140px}
+
+  .card{
+    position:relative;z-index:2;
+    background:#fff;border-radius:22px;padding:34px 36px 30px;
+    width:100%;max-width:480px;box-shadow:var(--shadow);
+    border:1px solid var(--border);
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;justify-content:center;
+    padding:6px 14px;background:linear-gradient(135deg,var(--green-dark),var(--green));
+    color:#fff;border-radius:11px;width:fit-content;margin:0 auto 18px;
+    font-size:12px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
+  }
+  .brand::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(224,169,59,.30)}
+  .logo-row{display:flex;justify-content:center;margin-bottom:14px}
+  .logo-row img{height:34px;width:auto;display:block}
+
+  h1{font-size:22px;font-weight:800;text-align:center;color:var(--green-dark);line-height:1.25;margin-bottom:8px}
+  h1 em{font-style:normal;color:var(--green)}
+  .sub{text-align:center;font-size:13.5px;color:var(--muted);margin-bottom:22px;font-weight:600;line-height:1.5}
+
+  .secure-note{
+    display:flex;align-items:flex-start;gap:10px;
+    background:linear-gradient(135deg,#EAF6F0,#F4F9F0);
+    border:1px solid #CFE5DA;border-radius:12px;padding:11px 14px;
+    font-size:12.5px;color:var(--green-dark);font-weight:600;line-height:1.45;
+    margin-bottom:20px;
+  }
+  .secure-note .ico{font-size:18px;line-height:1;flex:none;margin-top:1px}
+  .secure-note b{font-weight:800}
+
+  form{display:flex;flex-direction:column;gap:12px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:420px){ .row2{grid-template-columns:1fr} }
+
+  label{
+    font-size:11.5px;font-weight:800;color:var(--green-dark);
+    letter-spacing:1px;text-transform:uppercase;
+  }
+  .field{display:flex;flex-direction:column;gap:4px}
+  input{
+    width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;
+    font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);
+    transition:.15s;background:#FAFCFB;
+  }
+  input:focus{outline:none;border-color:var(--green);background:#fff;box-shadow:0 0 0 3px rgba(0,145,90,.12)}
+  input::placeholder{color:#9DB1A8;font-weight:500}
+
+  .password-wrap{position:relative}
+  .password-wrap input{padding-right:42px}
+  .toggle-pw{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    background:none;border:none;cursor:pointer;font-size:16px;color:var(--muted);
+    padding:4px 8px;border-radius:6px;transition:.12s;
+  }
+  .toggle-pw:hover{background:#F0F4F2;color:var(--green-dark)}
+
+  .pw-strength{
+    height:5px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:4px;
+  }
+  .pw-strength::after{
+    content:"";display:block;height:100%;border-radius:99px;width:var(--w,0%);
+    background:var(--bar,var(--danger));transition:.2s;
+  }
+  .pw-hint{font-size:11px;color:var(--muted);font-weight:600}
+
+  button.primary{
+    margin-top:6px;padding:13px 18px;border:none;border-radius:10px;
+    background:linear-gradient(135deg,var(--green),var(--teal));
+    color:#fff;font-family:inherit;font-weight:800;font-size:14px;
+    cursor:pointer;transition:.15s;letter-spacing:.3px;
+  }
+  button.primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,145,90,.30)}
+  button.primary:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+
+  .err{
+    background:#FDECEA;border:1px solid #F1B0AA;color:var(--danger);
+    border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;
+    margin-bottom:14px;display:flex;align-items:flex-start;gap:9px;
+  }
+  .err .ico{font-size:16px;line-height:1;flex:none;margin-top:1px}
+
+  .foot{
+    margin-top:18px;padding-top:16px;border-top:1px dashed var(--border);
+    font-size:12.5px;color:var(--muted);text-align:center;font-weight:600;line-height:1.6;
+  }
+  .foot a{color:var(--green-dark);font-weight:800;text-decoration:none}
+  .foot a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="logo-row"><img src="logo.png" alt="БанкГео"></div>
+  <div class="brand">🏦 УКРСИББАНК · BNP Paribas Group</div>
+  <h1>Реєстрація <em>співробітника</em></h1>
+  <p class="sub">Створіть акаунт у БанкГео Поділля. Пароль зберігається у захищеному вигляді.</p>
+
+  <div id="errBox" class="err" style="display:none">
+    <span class="ico">⛔</span><span id="errMsg"></span>
+  </div>
+
+  <div class="secure-note">
+    <span class="ico">🔒</span>
+    <span>Лише з корпоративних доменів: <b>@ukrsibbank.com</b>, <b>@ukrsibbank.ua</b>, <b>@bnpparibas.com</b></span>
+  </div>
+
+  <form id="form" autocomplete="off">
+    <div class="row2">
+      <div class="field">
+        <label for="firstName">Імʼя</label>
+        <input id="firstName" name="firstName" type="text" placeholder="Іван" required maxlength="50">
+      </div>
+      <div class="field">
+        <label for="lastName">Прізвище</label>
+        <input id="lastName" name="lastName" type="text" placeholder="Петренко" required maxlength="50">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="email">Корпоративний email</label>
+      <input id="email" name="email" type="email" placeholder="ivan.petrenko@ukrsibbank.com"
+             required pattern="[^@\s]+@(ukrsibbank\.com|ukrsibbank\.ua|bnpparibas\.com)">
+    </div>
+
+    <div class="field">
+      <label for="password">Пароль</label>
+      <div class="password-wrap">
+        <input id="password" name="password" type="password" placeholder="мін. 8 символів" required minlength="8" maxlength="100">
+        <button type="button" class="toggle-pw" data-target="password" title="Показати пароль">👁</button>
+      </div>
+      <div class="pw-strength" id="strengthBar"></div>
+      <div class="pw-hint" id="strengthHint">Мінімум 8 символів, бажано з цифрою і великою літерою</div>
+    </div>
+
+    <div class="field">
+      <label for="confirm">Повторіть пароль</label>
+      <div class="password-wrap">
+        <input id="confirm" name="confirm" type="password" placeholder="ще раз" required minlength="8" maxlength="100">
+        <button type="button" class="toggle-pw" data-target="confirm" title="Показати пароль">👁</button>
+      </div>
+    </div>
+
+    <button type="submit" class="primary" id="submitBtn">Створити акаунт →</button>
+  </form>
+
+  <div class="foot">
+    Вже є акаунт? <a href="login.html">Увійти</a><br>
+    <span style="opacity:.7">© 2026 УКРСИББАНК · BNP Paribas Group</span>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const ALLOWED = ["ukrsibbank.com","ukrsibbank.ua","bnpparibas.com"];
+const SESSION_MS = 8 * 60 * 60 * 1000;
+
+function showError(msg){ $("errMsg").textContent = msg; $("errBox").style.display = "flex"; }
+function clearError(){ $("errBox").style.display = "none"; }
+
+function isCorporate(email){
+  const d = (email||"").toLowerCase().split("@")[1];
+  return ALLOWED.includes(d);
+}
+
+/* Показ/приховання паролів */
+document.querySelectorAll(".toggle-pw").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const input = $(btn.dataset.target);
+    input.type = input.type === "password" ? "text" : "password";
+    btn.textContent = input.type === "password" ? "👁" : "🙈";
+  });
+});
+
+/* Індикатор сили пароля */
+function passwordStrength(pw){
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-ZА-ЯҐЄІЇ]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-zА-Яа-яҐЄІЇёЁ0-9]/.test(pw)) score++;
+  return score;
+}
+const STRENGTH = [
+  { w:"10%", bar:"#C0392B", text:"Дуже слабкий" },
+  { w:"25%", bar:"#E67E22", text:"Слабкий" },
+  { w:"50%", bar:"#F39C12", text:"Середній" },
+  { w:"75%", bar:"#7BD389", text:"Хороший" },
+  { w:"90%", bar:"#0FB89B", text:"Сильний" },
+  { w:"100%", bar:"#00915A", text:"Дуже сильний" },
+];
+$("password").addEventListener("input", e => {
+  const s = STRENGTH[passwordStrength(e.target.value)];
+  $("strengthBar").style.setProperty("--w", s.w);
+  $("strengthBar").style.setProperty("--bar", s.bar);
+  $("strengthHint").textContent = e.target.value ? s.text : "Мінімум 8 символів, бажано з цифрою і великою літерою";
+});
+
+/* Сабміт */
+$("form").addEventListener("submit", async e => {
+  e.preventDefault();
+  clearError();
+  const firstName = $("firstName").value.trim();
+  const lastName  = $("lastName").value.trim();
+  const email     = $("email").value.trim().toLowerCase();
+  const password  = $("password").value;
+  const confirm   = $("confirm").value;
+
+  if (!isCorporate(email)) return showError(`Email має бути з ${ALLOWED.map(d=>"@"+d).join(", ")}`);
+  if (password !== confirm) return showError("Паролі не співпадають.");
+  if (password.length < 8)  return showError("Пароль має містити щонайменше 8 символів.");
+
+  $("submitBtn").disabled = true;
+  $("submitBtn").textContent = "Створюю акаунт…";
+
+  try {
+    const res = await Db.users.register({ firstName, lastName, email, password });
+    if (!res.ok) {
+      showError(res.error);
+      $("submitBtn").disabled = false;
+      $("submitBtn").textContent = "Створити акаунт →";
+      return;
+    }
+
+    // Авто-вхід після реєстрації
+    Db.users.touchLogin(email);
+    Db.logins.add({ email, source: "password" });
+    Db.remembered.add(email);
+
+    const session = {
+      email, name: `${firstName} ${lastName}`.trim(),
+      firstName, lastName, picture: null,
+      source: "password", remember: false,
+      issued: Date.now(),
+      exp: Date.now() + SESSION_MS,
+    };
+    sessionStorage.setItem("ukrsib_auth", JSON.stringify(session));
+    location.href = "index.html";
+  } catch (err) {
+    showError("Несподівана помилка: " + err.message);
+    $("submitBtn").disabled = false;
+    $("submitBtn").textContent = "Створити акаунт →";
+  }
+});
+</script>
+
+</body>
+</html>

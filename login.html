@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вхід · БанкГео Поділля · УКРСИББАНК</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+<link rel="apple-touch-icon" href="favicon-192.png">
+<script src="db.js"></script>
+<!-- Google Identity Services — сучасна авторизація Google (не застаріла platform.js) -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#00915A;--green-dark:#00583C;--green-mid:#00A878;
+    --teal:#0FB89B;--gold:#E0A93B;--lime:#7BD389;
+    --ink:#12211B;--muted:#5C6E66;
+    --bg:#EFF5F2;--card:#FFFFFF;--border:#D7E4DD;
+    --danger:#C0392B;
+    --shadow:0 12px 34px rgba(0,88,60,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Manrope','Segoe UI',sans-serif;color:var(--ink);
+    min-height:100vh;display:flex;align-items:safe center;justify-content:center;
+    padding:32px 24px;
+    background:
+      radial-gradient(900px 500px at 85% -10%,rgba(15,184,155,.32),transparent 60%),
+      radial-gradient(700px 400px at 10% 110%,rgba(224,169,59,.18),transparent 60%),
+      linear-gradient(135deg,var(--green-dark) 0%,var(--green) 55%,var(--green-mid) 100%);
+    background-attachment:fixed;position:relative;
+  }
+  body::before,body::after{
+    content:"";position:absolute;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle,rgba(255,255,255,.08),transparent 70%);
+  }
+  body::before{width:520px;height:520px;top:-180px;right:-120px}
+  body::after{width:380px;height:380px;bottom:-160px;left:-140px}
+
+  .card{
+    position:relative;z-index:2;
+    background:#fff;border-radius:22px;padding:32px 36px 28px;
+    width:100%;max-width:460px;box-shadow:var(--shadow);
+    border:1px solid var(--border);
+  }
+
+  .brand{
+    display:flex;align-items:center;gap:10px;justify-content:center;
+    padding:6px 14px;background:linear-gradient(135deg,var(--green-dark),var(--green));
+    color:#fff;border-radius:11px;width:fit-content;margin:0 auto 16px;
+    font-size:12px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;
+  }
+  .brand::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 3px rgba(224,169,59,.30)}
+  .logo-row{display:flex;justify-content:center;margin-bottom:14px}
+  .logo-row img{height:34px;width:auto;display:block}
+
+  h1{font-size:21px;font-weight:800;text-align:center;color:var(--green-dark);line-height:1.25;margin-bottom:6px}
+  h1 em{font-style:normal;color:var(--green)}
+  .sub{text-align:center;font-size:13px;color:var(--muted);margin-bottom:18px;font-weight:600;line-height:1.5}
+
+  /* Нещодавні акаунти */
+  .recent-block{margin-bottom:16px}
+  .recent-title{
+    font-size:10.5px;font-weight:800;color:var(--green-dark);
+    letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px;
+  }
+  .recent-title::before{content:"";width:18px;height:2px;background:var(--gold);border-radius:2px}
+  .recent-list{display:flex;flex-direction:column;gap:6px}
+  .recent-item{
+    display:flex;align-items:center;gap:10px;
+    padding:8px 10px;border:1px solid var(--border);border-radius:10px;
+    background:#FAFCFB;cursor:pointer;transition:.15s;text-decoration:none;color:var(--ink);
+    position:relative;
+  }
+  .recent-item:hover{background:#fff;border-color:var(--green);transform:translateY(-1px);box-shadow:0 4px 10px rgba(0,88,60,.08)}
+  .recent-avatar{
+    width:30px;height:30px;border-radius:50%;flex:none;
+    background:linear-gradient(135deg,var(--green-dark),var(--teal));
+    color:#fff;display:flex;align-items:center;justify-content:center;
+    font-weight:800;font-size:11px;letter-spacing:.3px;overflow:hidden;
+  }
+  .recent-avatar img{width:100%;height:100%;object-fit:cover}
+  .recent-info{flex:1;min-width:0;line-height:1.25}
+  .recent-info b{display:block;font-size:13px;font-weight:800;color:var(--green-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .recent-info small{font-size:11px;color:var(--muted);font-weight:600}
+  .recent-forget{
+    background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:4px 6px;border-radius:6px;transition:.12s;
+  }
+  .recent-forget:hover{background:#FDECEA;color:var(--danger)}
+
+  .secure-note{
+    display:flex;align-items:flex-start;gap:10px;
+    background:linear-gradient(135deg,#EAF6F0,#F4F9F0);
+    border:1px solid #CFE5DA;border-radius:12px;padding:10px 14px;
+    font-size:12px;color:var(--green-dark);font-weight:600;line-height:1.45;
+    margin-bottom:18px;
+  }
+  .secure-note .ico{font-size:16px;line-height:1;flex:none;margin-top:1px}
+  .secure-note b{font-weight:800}
+
+  /* Google Sign-In */
+  .gsi-wrap{display:flex;justify-content:center;margin-bottom:12px;min-height:44px}
+  .gsi-fallback{
+    background:#fff;border:1px solid var(--border);border-radius:10px;
+    padding:9px 14px;font-size:12.5px;color:var(--muted);font-weight:600;
+    text-align:center;width:100%;line-height:1.4;
+  }
+  .gsi-fallback code{background:#F0F4F2;padding:1px 6px;border-radius:5px;font-size:11px}
+
+  .divider{
+    display:flex;align-items:center;gap:12px;color:var(--muted);
+    font-size:10.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
+    margin:16px 0;
+  }
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--border)}
+
+  /* Email/password форма */
+  form{display:flex;flex-direction:column;gap:11px}
+  label{font-size:11px;font-weight:800;color:var(--green-dark);letter-spacing:1px;text-transform:uppercase}
+  .field{display:flex;flex-direction:column;gap:4px}
+  input[type=email],input[type=password],input[type=text]{
+    width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;
+    font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);
+    transition:.15s;background:#FAFCFB;
+  }
+  input:focus{outline:none;border-color:var(--green);background:#fff;box-shadow:0 0 0 3px rgba(0,145,90,.12)}
+  input::placeholder{color:#9DB1A8;font-weight:500}
+
+  .password-wrap{position:relative}
+  .password-wrap input{padding-right:42px}
+  .toggle-pw{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);
+    padding:4px 8px;border-radius:6px;transition:.12s;
+  }
+  .toggle-pw:hover{background:#F0F4F2;color:var(--green-dark)}
+
+  .remember-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    font-size:12.5px;font-weight:700;color:var(--ink);
+  }
+  .remember-row label{
+    font-size:12.5px;font-weight:700;color:var(--ink);text-transform:none;letter-spacing:0;
+    display:flex;align-items:center;gap:7px;cursor:pointer;
+  }
+  .remember-row input[type=checkbox]{
+    width:16px;height:16px;accent-color:var(--green);cursor:pointer;
+  }
+  .remember-row a{color:var(--green-dark);text-decoration:none;font-weight:700}
+  .remember-row a:hover{text-decoration:underline}
+
+  button.primary{
+    padding:12px 18px;border:none;border-radius:10px;
+    background:linear-gradient(135deg,var(--green),var(--teal));
+    color:#fff;font-family:inherit;font-weight:800;font-size:14px;
+    cursor:pointer;transition:.15s;letter-spacing:.3px;
+  }
+  button.primary:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,145,90,.30)}
+  button.primary:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+
+  .err{
+    background:#FDECEA;border:1px solid #F1B0AA;color:var(--danger);
+    border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;
+    margin-bottom:14px;display:flex;align-items:flex-start;gap:9px;
+  }
+  .info{
+    background:#FFF6E5;border:1px solid #F0DFB6;color:#8C5E0A;
+    border-radius:10px;padding:10px 14px;font-size:13px;font-weight:700;
+    margin-bottom:14px;display:flex;align-items:flex-start;gap:9px;
+  }
+  .err .ico,.info .ico{font-size:16px;line-height:1;flex:none;margin-top:1px}
+
+  .foot{
+    margin-top:18px;padding-top:14px;border-top:1px dashed var(--border);
+    font-size:12px;color:var(--muted);text-align:center;font-weight:600;line-height:1.6;
+  }
+  .foot a{color:var(--green-dark);font-weight:800;text-decoration:none}
+  .foot a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<div class="card" role="main">
+
+  <div class="logo-row"><img src="logo.png" alt="БанкГео"></div>
+  <div class="brand">🏦 УКРСИББАНК · BNP Paribas Group</div>
+  <h1>Вхід для <em>працівників банку</em></h1>
+  <p class="sub">БанкГео Поділля — розподіл нових клієнтів по відділеннях Вінницької області.</p>
+
+  <div id="errBox" class="err" style="display:none">
+    <span class="ico">⛔</span><span id="errMsg"></span>
+  </div>
+
+  <div id="infoBox" class="info" style="display:none">
+    <span class="ico">ℹ️</span><span id="infoMsg"></span>
+  </div>
+
+  <!-- Нещодавно використані акаунти (рендериться JS) -->
+  <div class="recent-block" id="recentBlock" style="display:none">
+    <div class="recent-title">Раніше з цього компʼютера</div>
+    <div class="recent-list" id="recentList"></div>
+  </div>
+
+  <div class="secure-note">
+    <span class="ico">🔒</span>
+    <span>Доступ лише з корпоративних акаунтів: <b>@ukrsibbank.com</b>, <b>@ukrsibbank.ua</b>, <b>@bnpparibas.com</b></span>
+  </div>
+
+  <!-- Google Sign-In -->
+  <div class="gsi-wrap" id="gsiWrap">
+    <div class="gsi-fallback" id="gsiFallback">Завантаження Google Sign-In…</div>
+  </div>
+
+  <div class="divider">або email і пароль</div>
+
+  <!-- Email + password форма -->
+  <form id="loginForm" autocomplete="on">
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username"
+             placeholder="ivan.petrenko@ukrsibbank.com" required>
+    </div>
+    <div class="field">
+      <label for="password">Пароль</label>
+      <div class="password-wrap">
+        <input id="password" name="password" type="password" autocomplete="current-password"
+               placeholder="ваш пароль" required minlength="8">
+        <button type="button" class="toggle-pw" id="togglePw" title="Показати пароль">👁</button>
+      </div>
+    </div>
+    <div class="remember-row">
+      <label><input type="checkbox" id="remember"> Запамʼятати мене на 30 днів</label>
+      <a href="register.html">Реєстрація →</a>
+    </div>
+    <button type="submit" class="primary" id="submitBtn">Увійти →</button>
+  </form>
+
+  <div class="foot">
+    Немає акаунта? <a href="register.html">Зареєструватись</a><br>
+    <span style="opacity:.7">© 2026 УКРСИББАНК · BNP Paribas Group</span>
+  </div>
+
+</div>
+
+<script>
+/* ====================================================================
+   КОНФІГ
+==================================================================== */
+const GOOGLE_CLIENT_ID = "YOUR_CLIENT_ID.apps.googleusercontent.com";
+const ALLOWED = ["ukrsibbank.com","ukrsibbank.ua","bnpparibas.com"];
+const SESSION_SHORT_MS = 8  * 60 * 60 * 1000;     // 8 годин — стандартно
+const SESSION_LONG_MS  = 30 * 24 * 60 * 60 * 1000; // 30 днів — "запамʼятати мене"
+const REDIRECT_TO = "index.html";
+
+const $ = id => document.getElementById(id);
+const escapeHTML = s => String(s).replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+
+function showError(m){ $("errMsg").textContent = m; $("errBox").style.display = "flex"; $("infoBox").style.display = "none"; }
+function showInfo(m){  $("infoMsg").textContent = m; $("infoBox").style.display = "flex"; }
+function clearMsgs(){ $("errBox").style.display = $("infoBox").style.display = "none"; }
+
+function isCorporate(email){
+  const d = (email||"").toLowerCase().split("@")[1];
+  return ALLOWED.includes(d);
+}
+
+function decodeJWT(token){
+  try{
+    const base64 = token.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+    const json = decodeURIComponent(atob(base64).split("").map(c =>
+      "%" + ("00"+c.charCodeAt(0).toString(16)).slice(-2)).join(""));
+    return JSON.parse(json);
+  } catch { return null; }
+}
+
+function grantAccess({ email, name, firstName, lastName, picture, source, remember }){
+  email = (email||"").toLowerCase().trim();
+  Db.users.touchLogin(email);
+  Db.logins.add({ email, source });
+  if (remember) Db.remembered.add(email);
+
+  const sessionMs = remember ? SESSION_LONG_MS : SESSION_SHORT_MS;
+  const session = {
+    email, name, firstName: firstName || "", lastName: lastName || "",
+    picture: picture || null, source, remember: !!remember,
+    issued: Date.now(),
+    exp: Date.now() + sessionMs,
+  };
+  sessionStorage.setItem("ukrsib_auth", JSON.stringify(session));
+  // Якщо "запамʼятати мене" — додатково кладемо в localStorage для авто-відновлення
+  if (remember) localStorage.setItem("ukrsib_auth_persistent", JSON.stringify(session));
+
+  location.href = REDIRECT_TO;
+}
+
+/* ====================================================================
+   ПАРАМЕТРИ URL
+==================================================================== */
+const params = new URLSearchParams(location.search);
+if (params.get("denied")  === "1") showError("Цей акаунт не належить до УКРСИББАНКу. Зверніться до IT-департаменту.");
+if (params.get("expired") === "1") showInfo("Сесія завершилась. Будь ласка, увійдіть знову.");
+if (params.get("logout")  === "1") showInfo("Ви вийшли із системи.");
+
+/* ====================================================================
+   НЕЩОДАВНІ АКАУНТИ
+==================================================================== */
+function renderRecentAccounts(){
+  const accounts = Db.remembered.all();
+  if (!accounts.length){ $("recentBlock").style.display = "none"; return; }
+  $("recentBlock").style.display = "block";
+
+  $("recentList").innerHTML = accounts.map(a => {
+    const name = [a.firstName, a.lastName].filter(Boolean).join(" ") || a.email;
+    const initials = (name || a.email).split(/\s+/).slice(0,2)
+      .map(s => s.charAt(0).toUpperCase()).join("") || "U";
+    const avatar = a.avatar
+      ? `<img src="${escapeHTML(a.avatar)}" alt="" referrerpolicy="no-referrer">`
+      : initials;
+    const last = a.lastLoginAt
+      ? `Востаннє: ${new Date(a.lastLoginAt).toLocaleDateString("uk-UA")}`
+      : "Натисніть для входу";
+    return `
+      <div class="recent-item" data-email="${escapeHTML(a.email)}" role="button" tabindex="0">
+        <div class="recent-avatar">${avatar}</div>
+        <div class="recent-info">
+          <b>${escapeHTML(name)}</b>
+          <small>${escapeHTML(a.email)} · ${last}</small>
+        </div>
+        <button type="button" class="recent-forget" data-forget="${escapeHTML(a.email)}" title="Прибрати з пам'яті">✕</button>
+      </div>`;
+  }).join("");
+
+  // Click на акаунт — підставляємо email і фокусимо пароль
+  $("recentList").querySelectorAll(".recent-item").forEach(el => {
+    el.addEventListener("click", e => {
+      if (e.target.closest(".recent-forget")) return;
+      $("email").value = el.dataset.email;
+      $("password").focus();
+    });
+  });
+  // Click на ✕ — прибираємо з пам'яті
+  $("recentList").querySelectorAll(".recent-forget").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      Db.remembered.remove(btn.dataset.forget);
+      renderRecentAccounts();
+    });
+  });
+}
+renderRecentAccounts();
+
+/* ====================================================================
+   GOOGLE SIGN-IN
+==================================================================== */
+function handleGoogleCredential(response){
+  const payload = decodeJWT(response.credential);
+  if (!payload){ showError("Не вдалося прочитати дані Google-акаунту."); return; }
+  if (!payload.email_verified){ showError("Ваша email-адреса не підтверджена в Google."); return; }
+  if (!isCorporate(payload.email)){
+    showError(`Доступ дозволено лише з корпоративних акаунтів УКРСИББАНКу. Ваш акаунт: ${payload.email}`);
+    return;
+  }
+
+  // Зберігаємо/оновлюємо запис у "БД"
+  const user = Db.users.upsertFromGoogle({
+    firstName: payload.given_name || "",
+    lastName:  payload.family_name || "",
+    email: payload.email,
+    avatar: payload.picture || null,
+  });
+
+  grantAccess({
+    email: user.email,
+    name: payload.name || user.email,
+    firstName: user.firstName,
+    lastName:  user.lastName,
+    picture:   user.avatar,
+    source: "google",
+    remember: $("remember").checked,
+  });
+}
+
+function initGoogleSignIn(retries = 25){
+  // Якщо немає Client ID або відкрито з file:// — просто ховаємо блок Google.
+  // Користувач не побачить технічних деталей, лише email-форму нижче.
+  if (GOOGLE_CLIENT_ID.startsWith("YOUR_CLIENT_ID") || location.protocol === "file:"){
+    $("gsiWrap").style.display = "none";
+    return;
+  }
+  if (!window.google || !google.accounts || !google.accounts.id){
+    if (retries <= 0){ $("gsiWrap").style.display = "none"; return; }
+    return setTimeout(() => initGoogleSignIn(retries - 1), 200);
+  }
+  try{
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential,
+      ux_mode: "popup", auto_select: false, cancel_on_tap_outside: true,
+    });
+    google.accounts.id.renderButton($("gsiWrap"), {
+      type:"standard", theme:"filled_blue", size:"large",
+      text:"signin_with", shape:"rectangular", logo_alignment:"left", width:380,
+    });
+    $("gsiFallback").style.display = "none";
+  } catch(e){
+    $("gsiWrap").style.display = "none";
+  }
+}
+initGoogleSignIn();
+
+/* ====================================================================
+   EMAIL/PASSWORD ВХІД
+==================================================================== */
+$("togglePw").addEventListener("click", () => {
+  const i = $("password");
+  i.type = i.type === "password" ? "text" : "password";
+  $("togglePw").textContent = i.type === "password" ? "👁" : "🙈";
+});
+
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  clearMsgs();
+  const email = $("email").value.trim().toLowerCase();
+  const password = $("password").value;
+  const remember = $("remember").checked;
+
+  if (!isCorporate(email)){
+    showError(`Email має бути з ${ALLOWED.map(d=>"@"+d).join(", ")}`);
+    return;
+  }
+
+  $("submitBtn").disabled = true;
+  $("submitBtn").textContent = "Перевіряю…";
+
+  try{
+    const res = await Db.users.verifyPassword(email, password);
+    if (!res.ok){
+      showError(res.error);
+      $("submitBtn").disabled = false;
+      $("submitBtn").textContent = "Увійти →";
+      return;
+    }
+    grantAccess({
+      email: res.user.email,
+      name:  `${res.user.firstName} ${res.user.lastName}`.trim() || res.user.email,
+      firstName: res.user.firstName,
+      lastName:  res.user.lastName,
+      picture:   res.user.avatar,
+      source: "password",
+      remember,
+    });
+  } catch(err){
+    showError("Несподівана помилка: " + err.message);
+    $("submitBtn").disabled = false;
+    $("submitBtn").textContent = "Увійти →";
+  }
+});
+
+
+</script>
+
+</body>
+</html>

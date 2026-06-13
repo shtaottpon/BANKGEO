@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<script src="auth-guard.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>БанкГео — розумний розподіл клієнтів · УКРСИББАНК</title>
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="favicon-192.png">
+<link rel="apple-touch-icon" href="favicon-192.png">
+<!-- SheetJS — читання та створення Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Leaflet — справжня інтерактивна карта (OpenStreetMap) -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<!-- Шрифт -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* УКРСИББАНК (група BNP Paribas) — бірюзово-зелена гама */
+    --green:#00915A;        /* фірмовий зелений банку */
+    --green-dark:#00583C;   /* глибокий бірюзово-зелений */
+    --green-mid:#00A878;
+    --teal:#0FB89B;         /* бірюза-акцент */
+    --gold:#E0A93B;         /* золотий акцент — фонтан Roshen / тепло Поділля */
+    --lime:#7BD389;         /* світло-зелений для виділень на темному */
+    --ink:#12211B; --muted:#5C6E66;
+    --bg:#EFF5F2; --card:#FFFFFF; --border:#D7E4DD;
+    --c4:#C0392B;
+    --shadow:0 12px 34px rgba(0,88,60,.12);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Manrope','Segoe UI',sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+
+  /* ============ ШАПКА ============ */
+  header{
+    background:
+      radial-gradient(800px 360px at 88% -20%, rgba(15,184,155,.30), transparent 60%),
+      linear-gradient(135deg,var(--green-dark) 0%,var(--green) 68%,var(--green-mid) 100%);
+    color:#fff;padding:42px 0 130px;position:relative;overflow:hidden;
+  }
+  /* силует Вінниці внизу шапки */
+  /* силует Вінниці внизу шапки */
+  .skyline{
+    position:absolute;left:0;right:0;bottom:0;width:100%;height:120px;
+    pointer-events:none;
+    -webkit-mask-image:linear-gradient(180deg,transparent,#000 55%);
+    mask-image:linear-gradient(180deg,transparent,#000 55%);
+  }
+  .skyline svg{width:100%;height:100%;display:block}
+  /* хвиля Південного Бугу під силуетом */
+  .river{position:absolute;left:0;right:0;bottom:0;height:26px;
+    background:linear-gradient(180deg,transparent,rgba(15,184,155,.28));pointer-events:none}
+  .h-inner{position:relative;z-index:2}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:700;
+    letter-spacing:2.5px;text-transform:uppercase;color:var(--lime);margin-bottom:14px;
+  }
+  .eyebrow::before{content:"";width:30px;height:3px;background:var(--gold);border-radius:3px}
+  h1{font-size:clamp(26px,4.4vw,42px);font-weight:800;line-height:1.12;max-width:740px}
+  h1 em{font-style:normal;color:var(--gold)}
+  .sub{margin-top:14px;font-size:16px;opacity:.9;max-width:650px;line-height:1.55}
+  .kpis{display:flex;gap:34px;margin-top:26px;flex-wrap:wrap}
+  .kpi b{font-size:26px;font-weight:800;color:#fff}
+  .kpi span{display:block;font-size:12px;opacity:.78;margin-top:2px}
+  /* банер-стрічка з брендом */
+  .brandbar{
+    display:inline-flex;align-items:center;gap:12px;background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:8px 14px;margin-bottom:18px;
+    backdrop-filter:blur(4px);font-size:13px;font-weight:700;
+  }
+  .brandbar .dot{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(224,169,59,.25)}
+  .logo-mark{
+    display:inline-flex;align-items:center;justify-content:center;
+    background:#fff;padding:9px 18px;border-radius:14px;margin-bottom:16px;
+    box-shadow:0 8px 22px rgba(0,40,28,.22);text-decoration:none;
+  }
+  .logo-mark img{display:block;height:30px;width:auto}
+
+  /* ============ КАРТКИ ============ */
+  main{margin-top:-64px;position:relative;z-index:2;padding-bottom:70px}
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:18px;
+    padding:26px;margin-bottom:22px;box-shadow:var(--shadow);
+  }
+  .card h2{font-size:17px;font-weight:800;display:flex;align-items:center;gap:11px;margin-bottom:16px}
+  .step{
+    background:linear-gradient(135deg,var(--green),var(--teal));color:#fff;width:28px;height:28px;border-radius:9px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:none;
+    box-shadow:0 0 0 3px rgba(15,184,155,.16);
+  }
+
+  .branches{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+  .branch{
+    border:1px solid var(--border);border-radius:14px;padding:18px 16px 18px 20px;position:relative;
+    transition:.2s cubic-bezier(.2,.7,.3,1);background:linear-gradient(180deg,#FFFFFF,#FAFCFB);overflow:hidden;
+  }
+  .branch::after{ /* кольорова смужка зліва — фірмовий колір відділення */
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:linear-gradient(180deg,var(--dot,#00583C),color-mix(in srgb,var(--dot,#00583C) 55%,#fff));
+  }
+  .branch:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:color-mix(in srgb,var(--dot,#00583C) 40%,var(--border))}
+  .branch::before{ /* кольорова крапка зі світінням */
+    content:"";position:absolute;left:20px;top:21px;width:10px;height:10px;border-radius:50%;
+    background:var(--dot,#00583C);box-shadow:0 0 0 4px color-mix(in srgb,var(--dot,#00583C) 18%,transparent);
+  }
+  .branch b{display:block;font-size:16px;padding-left:22px;color:var(--green-dark);letter-spacing:.2px}
+  .branch span{display:block;font-size:11px;color:var(--muted);padding-left:22px;margin-top:5px;font-weight:600}
+  @media(max-width:860px){ .branches{grid-template-columns:repeat(3,1fr)} }
+  @media(max-width:520px){ .branches{grid-template-columns:repeat(2,1fr)} }
+
+  .drop{
+    border:2px dashed #C2D8CE;border-radius:18px;padding:38px 26px 30px;text-align:center;
+    cursor:pointer;transition:.22s cubic-bezier(.2,.7,.3,1);
+    background:
+      radial-gradient(420px 160px at 50% 0%, rgba(15,184,155,.08), transparent 70%),
+      linear-gradient(180deg,#FCFEFD,#F4F9F7);
+    position:relative;
+  }
+  .drop:hover,.drop.over{
+    border-color:var(--teal);background:
+      radial-gradient(420px 180px at 50% 0%, rgba(15,184,155,.16), transparent 70%),
+      linear-gradient(180deg,#F1FAF6,#E9F5F0);
+    transform:translateY(-2px);box-shadow:var(--shadow);
+  }
+  .drop.over{border-style:solid}
+  .drop-ico{
+    width:64px;height:64px;margin:0 auto 14px;border-radius:18px;
+    display:flex;align-items:center;justify-content:center;
+    background:#fff;box-shadow:0 6px 18px rgba(0,88,60,.12);
+    transition:.22s;
+  }
+  .drop:hover .drop-ico{transform:translateY(-3px) scale(1.04)}
+  .drop-ico svg{width:38px;height:38px}
+  .drop b{color:var(--green-dark);font-size:17px;display:block}
+  .drop small{display:block;margin-top:5px;color:var(--muted);font-size:13.5px}
+  .formats{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+  .fmt{
+    background:#fff;border:1px solid var(--border);border-radius:8px;
+    padding:4px 12px;font-size:12px;font-weight:700;color:var(--green);letter-spacing:.3px;
+  }
+  .cols-hint{margin-top:14px;font-size:12.5px;color:var(--muted)}
+  .cols-hint b{color:var(--green-dark)}
+  /* плашка обраного файлу */
+  .filechip{
+    display:inline-flex;align-items:center;gap:10px;margin-top:16px;
+    background:color-mix(in srgb,var(--teal) 10%,#fff);
+    border:1px solid color-mix(in srgb,var(--teal) 30%,#fff);
+    border-radius:12px;padding:10px 16px;font-size:13.5px;font-weight:700;color:var(--green-dark);
+  }
+  .filechip-ico{font-size:18px}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;border:none;border-radius:11px;cursor:pointer;
+    padding:13px 22px;font-size:14px;font-weight:700;font-family:inherit;transition:.16s;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn-green{background:var(--green);color:#fff}
+  .btn-green:hover{background:var(--green-dark)}
+  .btn-lime{background:var(--gold);color:#3D2A06}
+  .btn-lime:hover{filter:brightness(1.07)}
+  .btn-ghost{background:#fff;color:var(--green-dark);border:1.5px solid var(--border)}
+  .btn-ghost:hover{border-color:var(--green)}
+  .btn-red{background:#FBEAE7;color:var(--c4)}
+  .btn-red:hover{background:#F5D5CF}
+  .btn-add{background:var(--gold);color:#3D2A06}
+  .btn-add:hover{filter:brightness(1.07)}
+
+  /* ===== Модалка «Додати клієнта вручну» ===== */
+  .modal-bg{
+    position:fixed;inset:0;z-index:9000;background:rgba(0,40,28,.55);
+    backdrop-filter:blur(4px);display:flex;align-items:safe center;justify-content:center;
+    padding:24px;overflow-y:auto;
+  }
+  .modal-bg.hide{display:none}
+  .modal{
+    background:#fff;border-radius:18px;padding:26px 28px 22px;
+    width:100%;max-width:540px;box-shadow:0 24px 60px rgba(0,40,28,.35);
+    border:1px solid var(--border);position:relative;
+  }
+  .modal::before{
+    content:"";position:absolute;left:0;right:0;top:0;height:4px;
+    background:linear-gradient(90deg,var(--gold),var(--teal),var(--green));
+    border-radius:18px 18px 0 0;
+  }
+  .modal h3{
+    font-size:18px;font-weight:800;color:var(--green-dark);
+    margin-bottom:4px;display:flex;align-items:center;gap:9px;
+  }
+  .modal .modal-sub{
+    font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.5;
+    margin-bottom:18px;
+  }
+  .modal-close{
+    position:absolute;top:14px;right:14px;background:none;border:none;
+    font-size:22px;color:var(--muted);cursor:pointer;
+    width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:.12s;
+  }
+  .modal-close:hover{background:#F0F4F2;color:var(--green-dark)}
+
+  .m-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  @media(max-width:520px){ .m-grid{grid-template-columns:1fr} }
+  .m-field{display:flex;flex-direction:column;gap:5px;margin-bottom:11px}
+  .m-field.full{grid-column:1/-1}
+  .m-field label{font-size:11px;font-weight:800;color:var(--green-dark);letter-spacing:1px;text-transform:uppercase}
+  .m-field input, .m-field select, .m-field textarea{
+    width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;
+    font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);
+    transition:.15s;background:#FAFCFB;
+  }
+  .m-field input:focus, .m-field select:focus, .m-field textarea:focus{
+    outline:none;border-color:var(--green);background:#fff;box-shadow:0 0 0 3px rgba(0,145,90,.12);
+  }
+  .m-field input::placeholder, .m-field textarea::placeholder{color:#9DB1A8;font-weight:500}
+  .m-field small{font-size:11px;color:var(--muted);font-weight:600;line-height:1.4}
+
+  .branch-pick{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:2px}
+  @media(max-width:520px){ .branch-pick{grid-template-columns:repeat(2,1fr)} }
+  .branch-opt{
+    display:flex;align-items:center;gap:9px;
+    padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;
+    cursor:pointer;background:#FAFCFB;transition:.12s;font-size:13px;font-weight:700;color:var(--ink);
+  }
+  .branch-opt:hover{background:#fff;border-color:var(--green)}
+  .branch-opt.on{background:#fff;border-color:var(--bc,var(--green));box-shadow:0 0 0 3px color-mix(in srgb,var(--bc,var(--green)) 15%,transparent)}
+  .branch-opt .dot{width:10px;height:10px;border-radius:50%;background:var(--bc,var(--green));flex:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--bc,var(--green)) 18%,transparent)}
+  .branch-opt input{display:none}
+
+  .modal-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+  .modal-err{
+    background:#FDECEA;border:1px solid #F1B0AA;color:var(--c4);
+    border-radius:9px;padding:9px 13px;font-size:13px;font-weight:700;margin-bottom:12px;
+    display:flex;align-items:flex-start;gap:8px;
+  }
+  .modal-err.hide{display:none}
+
+  .manual-badge{
+    display:inline-flex;align-items:center;gap:4px;
+    background:#FFF6E5;border:1px solid #F0DFB6;color:#8C5E0A;
+    border-radius:999px;padding:2px 8px;
+    font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-left:6px;
+  }
+
+  /* Тиха кнопка ✎ для редагування відділення на рядку таблиці */
+  .row-edit{
+    background:none;border:none;color:#9DB1A8;cursor:pointer;
+    font-size:13px;padding:3px 6px;border-radius:6px;margin-left:6px;
+    transition:.12s;line-height:1;vertical-align:middle;
+    opacity:.55;
+  }
+  tr:hover .row-edit{opacity:1;color:var(--green-dark)}
+  .row-edit:hover{background:#F0F4F2;color:var(--green-dark) !important}
+  .row{display:flex;gap:11px;flex-wrap:wrap;align-items:center;margin-top:16px}
+
+  .stats{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-bottom:20px}
+  .stat{
+    border:1px solid var(--border);border-radius:14px;padding:16px 14px 16px 20px;position:relative;
+    background:linear-gradient(180deg,#FFFFFF,#FAFCFB);overflow:hidden;
+    transition:.2s cubic-bezier(.2,.7,.3,1);
+  }
+  .stat::after{ /* кольорова смужка зліва — як у картках відділень */
+    content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+    background:linear-gradient(180deg,var(--top,#00583C),color-mix(in srgb,var(--top,#00583C) 55%,#fff));
+  }
+  .stat:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:color-mix(in srgb,var(--top,#00583C) 40%,var(--border))}
+  .stat .num{font-size:30px;font-weight:800;color:var(--green-dark);line-height:1}
+  .stat .lbl{font-size:12px;color:var(--muted);font-weight:600;margin-top:4px}
+  .stat .bar{height:6px;background:#E5EEEA;border-radius:4px;margin-top:11px;overflow:hidden}
+  .stat .bar i{display:block;height:100%;border-radius:4px;background:var(--top,#00583C);width:0;transition:width .9s cubic-bezier(.2,.7,.3,1)}
+  @media(max-width:980px){ .stats{grid-template-columns:repeat(4,1fr)} }
+  @media(max-width:620px){ .stats{grid-template-columns:repeat(2,1fr)} }
+
+  /* карта */
+  #map{height:540px;border-radius:16px;border:1px solid var(--border);z-index:0;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.6), var(--shadow);overflow:hidden}
+  /* елементи керування Leaflet у фірмовому стилі */
+  .leaflet-control-zoom a{
+    border-radius:9px !important;color:var(--green-dark) !important;
+    font-weight:700 !important;border:1px solid var(--border) !important;
+  }
+  .leaflet-control-zoom{box-shadow:var(--shadow) !important;border:none !important}
+  .leaflet-popup-content-wrapper{border-radius:12px !important;box-shadow:var(--shadow) !important}
+  .leaflet-popup-content{font-family:'Manrope',sans-serif !important;margin:12px 14px !important}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;padding:12px 4px 0;font-size:12.5px;font-weight:600;color:var(--muted)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+  /* маркер відділення на Leaflet-карті */
+  .bmarker{
+    display:flex;align-items:center;justify-content:center;
+    width:36px;height:36px;border-radius:11px;border:3px solid #fff;
+    box-shadow:0 4px 14px rgba(0,0,0,.30);color:#fff;font-weight:800;font-size:16px;
+    font-family:'Manrope',sans-serif;cursor:pointer;transition:.15s;
+  }
+  .bmarker:hover{transform:scale(1.12)}
+  .blabel{
+    background:#fff;border:none;border-radius:8px;box-shadow:0 3px 10px rgba(0,0,0,.20);
+    font-family:'Manrope',sans-serif;font-weight:800;font-size:12px;color:var(--green-dark);
+    padding:3px 10px;
+  }
+  .blabel::before{border-top-color:#fff !important}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .chip{
+    border:1.5px solid var(--border);background:#fff;border-radius:99px;
+    padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;font-family:inherit;color:var(--ink);
+  }
+  .chip:hover{border-color:var(--green)}
+  .chip.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .search{
+    flex:1;min-width:200px;border:1.5px solid var(--border);border-radius:11px;
+    padding:11px 15px;font-size:14px;font-family:inherit;outline:none;transition:.15s;
+  }
+  .search:focus{border-color:var(--teal)}
+
+  .tablebox{overflow:auto;border:1px solid var(--border);border-radius:13px;max-height:520px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:820px}
+  th{
+    background:var(--green-dark);color:#fff;text-align:left;padding:12px 14px;
+    font-weight:700;white-space:nowrap;position:sticky;top:0;z-index:1;
+  }
+  td{padding:10px 14px;border-top:1px solid var(--border)}
+  tr:nth-child(even) td{background:#F8FBFA}
+  .pill{
+    display:inline-flex;align-items:center;gap:7px;border-radius:99px;
+    padding:4px 12px;font-weight:700;font-size:12px;white-space:nowrap;
+    background:color-mix(in srgb, var(--pc,#0B5C45) 12%, #fff);color:var(--pc,#0B5C45);
+  }
+  .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--pc,#0B5C45)}
+  .err{color:var(--c4);font-weight:700}
+
+  .note{border-radius:12px;padding:13px 16px;font-size:13.5px;margin-top:16px;font-weight:600}
+  .note.ok{background:#E9F7EE;color:#1E7B45;border:1px solid #C2E7CF}
+  .note.warn{background:#FFF6E5;color:#8C5E0A;border:1px solid #F0DFB6}
+  .hide{display:none !important}
+  .place-banner{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    background:color-mix(in srgb,var(--teal) 12%,#fff);
+    border:1px solid color-mix(in srgb,var(--teal) 35%,#fff);
+    border-radius:11px;padding:10px 14px;margin-bottom:12px;
+    font-size:13.5px;font-weight:700;color:var(--green-dark);
+  }
+  /* ============ МІНІМАЛІСТИЧНИЙ ФУТЕР ============ */
+  .site-footer{
+    margin-top:8px;padding:28px 0 24px;
+    border-top:1px solid var(--border);
+    background:#FAFCFB;
+    font-family:'Manrope',sans-serif;
+  }
+  .ft-title{
+    font-size:11.5px;font-weight:800;letter-spacing:2.2px;text-transform:uppercase;
+    color:var(--green-dark);margin-bottom:14px;display:flex;align-items:center;gap:10px;
+  }
+  .ft-title::before{content:"";width:24px;height:2px;background:var(--gold);border-radius:2px}
+  .ft-grid{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;
+  }
+  @media(max-width:980px){ .ft-grid{grid-template-columns:repeat(3,1fr)} }
+  @media(max-width:720px){ .ft-grid{grid-template-columns:repeat(2,1fr)} }
+  @media(max-width:460px){ .ft-grid{grid-template-columns:1fr} }
+  .ft-cell{
+    position:relative;display:block;
+    padding:11px 30px 12px 16px;border-radius:10px;text-decoration:none;
+    color:var(--ink);border:1px solid var(--border);background:#fff;
+    transition:.15s;overflow:hidden;
+  }
+  .ft-cell::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:var(--c, var(--green));
+  }
+  .ft-cell:hover{
+    transform:translateY(-1px);
+    border-color:var(--c, var(--green));
+    box-shadow:0 4px 10px rgba(0,88,60,.07);
+  }
+  .ft-cell em{display:block;font-style:normal;font-size:10.5px;color:var(--muted);font-weight:700;line-height:1.3;text-transform:uppercase;letter-spacing:.5px}
+  .ft-cell b{display:block;font-size:13.5px;font-weight:800;color:var(--c, var(--green-dark));line-height:1.3;margin-top:2px}
+  .ft-cell strong{display:block;font-size:12px;font-weight:600;color:var(--ink);margin-top:5px;letter-spacing:.1px;line-height:1.4}
+  .ft-cell .access{
+    position:absolute;top:9px;right:10px;font-size:13px;opacity:.6;line-height:1;cursor:help;
+  }
+
+  .ft-bottom{
+    display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center;
+    font-size:12px;color:var(--muted);padding-top:14px;border-top:1px dashed var(--border);
+  }
+  .ft-bottom a{color:var(--green-dark);text-decoration:none;font-weight:700}
+  .ft-bottom a:hover{text-decoration:underline}
+  .ft-bottom strong{color:var(--ink);font-weight:800}
+  .ft-schedule{
+    display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
+    background:#EAF6F0;color:var(--green-dark);font-weight:700;border:1px solid #CFE5DA;
+  }
+  @media(max-width:600px){ .ft-bottom{justify-content:center;text-align:center} }
+  @media(max-width:600px){ .card{padding:18px} header{padding:34px 0 110px} #map{height:400px} .skyline{height:70px} .kpis{gap:22px} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap h-inner">
+    <a href="index.html" class="logo-mark" aria-label="БанкГео — на головну">
+      <img src="logo.png" alt="БанкГео">
+    </a>
+    <div class="brandbar"><span class="dot"></span>УКРСИББАНК · BNP Paribas Group · Вінницька область</div>
+    <h1>Розподіл нових клієнтів по відділеннях — <em>за 1 секунду</em></h1>
+    <p class="sub">Завантажте щоденне вивантаження ФОП та юросіб з vkursi pro — система автоматично закріпить кожного клієнта за найближчим відділенням УКРСИББАНК у Вінницькій області за географічним принципом.</p>
+    <div class="kpis">
+      <div class="kpi"><b>6</b><span>відділень у регіоні</span></div>
+      <div class="kpi"><b>120+</b><span>населених пунктів Вінниччини</span></div>
+      <div class="kpi"><b>2-3 год → 1 сек</b><span>економія часу щодня</span></div>
+    </div>
+  </div>
+  <!-- силует Вінниці: Водонапірна вежа, фонтан Roshen, куполи, забудова над Південним Бугом -->
+  <div class="skyline">
+    <svg viewBox="0 0 1440 120" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity=".30"/>
+          <stop offset="1" stop-color="#ffffff" stop-opacity=".16"/>
+        </linearGradient>
+      </defs>
+      <g fill="url(#sky)">
+        <!-- далека дрібна забудова (фон) -->
+        <rect x="60"  y="86" width="34" height="34" rx="2"/>
+        <rect x="100" y="78" width="22" height="42" rx="2"/>
+        <rect x="128" y="90" width="30" height="30" rx="2"/>
+        <rect x="300" y="84" width="30" height="36" rx="2"/>
+        <rect x="336" y="92" width="26" height="28" rx="2"/>
+        <rect x="850" y="88" width="30" height="32" rx="2"/>
+        <rect x="886" y="80" width="22" height="40" rx="2"/>
+        <rect x="1180" y="86" width="32" height="34" rx="2"/>
+        <rect x="1220" y="92" width="26" height="28" rx="2"/>
+        <rect x="1300" y="82" width="24" height="38" rx="2"/>
+      </g>
+
+      <g fill="#ffffff" fill-opacity=".5">
+        <!-- куполи церкви (ліворуч від центру) -->
+        <g>
+          <rect x="470" y="78" width="58" height="42" rx="2"/>
+          <path d="M482 78c0-9 7-16 17-16s17 7 17 16z"/>
+          <rect x="497" y="50" width="4" height="12" rx="2"/>
+          <circle cx="499" cy="48" r="3"/>
+        </g>
+
+        <!-- Водонапірна вежа — головний символ Вінниці -->
+        <g>
+          <rect x="606" y="40" width="30" height="80" rx="3"/>
+          <rect x="601" y="36" width="40" height="8" rx="3"/>
+          <path d="M606 40l15-16 15 16z"/>
+          <rect x="616" y="56" width="10" height="12" rx="2" fill="#00583C" fill-opacity=".6"/>
+          <rect x="616" y="76" width="10" height="12" rx="2" fill="#00583C" fill-opacity=".6"/>
+          <rect x="619" y="24" width="3" height="12" rx="1.5"/>
+        </g>
+
+        <!-- Фонтан Roshen — світловий струмінь по центру -->
+        <g fill="#E0A93B" fill-opacity=".75">
+          <rect x="726" y="46" width="5" height="74" rx="2.5"/>
+          <rect x="714" y="60" width="4" height="60" rx="2"/>
+          <rect x="739" y="60" width="4" height="60" rx="2"/>
+          <rect x="703" y="74" width="3.5" height="46" rx="1.8"/>
+          <rect x="750" y="74" width="3.5" height="46" rx="1.8"/>
+          <ellipse cx="728.5" cy="44" rx="9" ry="5"/>
+          <circle cx="716" cy="58" r="2.4"/>
+          <circle cx="741" cy="58" r="2.4"/>
+        </g>
+        <!-- чаша фонтану -->
+        <path d="M690 112c0-8 18-12 38.5-12s38.5 4 38.5 12z" fill="#ffffff" fill-opacity=".5"/>
+
+        <!-- сучасна забудова праворуч -->
+        <rect x="960"  y="64" width="30" height="56" rx="2"/>
+        <rect x="996"  y="76" width="34" height="44" rx="2"/>
+        <rect x="1040" y="58" width="26" height="62" rx="2"/>
+        <rect x="1072" y="84" width="30" height="36" rx="2"/>
+        <!-- ліва середня забудова -->
+        <rect x="180" y="68" width="30" height="52" rx="2"/>
+        <rect x="216" y="80" width="34" height="40" rx="2"/>
+        <rect x="256" y="62" width="24" height="58" rx="2"/>
+      </g>
+    </svg>
+  </div>
+  <div class="river"></div>
+</header>
+
+
+<main class="wrap">
+
+  <div class="card">
+    <h2><span class="step">1</span> Відділення УКРСИББАНК</h2>
+    <div class="branches" id="branchList"></div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step">2</span> Завантажте файл з клієнтами</h2>
+    <div class="drop" id="drop">
+      <div class="drop-ico">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="9" y="14" width="30" height="26" rx="5" fill="#E3F2EC" stroke="#00915A" stroke-width="2.2"/>
+          <path d="M9 19c0-2.8 2.2-5 5-5h7l3.5 4H34c2.8 0 5 2.2 5 5" stroke="#00915A" stroke-width="2.2" fill="#fff"/>
+          <path d="M24 33V22m0 0l-4.5 4.5M24 22l4.5 4.5" stroke="#00915A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <b>Перетягніть Excel-файл сюди</b>
+      <small>або натисніть, щоб обрати з компʼютера</small>
+      <div class="formats">
+        <span class="fmt">.xlsx</span><span class="fmt">.xls</span><span class="fmt">.csv</span>
+      </div>
+    </div>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv" class="hide">
+    <button id="demoBtn" class="hide"></button>
+    <div class="filechip hide" id="fileChip">
+      <span class="filechip-ico">📄</span>
+      <span id="fileName"></span>
+    </div>
+  </div>
+
+  <div class="card hide" id="resultCard">
+    <h2><span class="step">3</span> Результат розподілу</h2>
+
+    <div class="stats" id="stats"></div>
+
+    <div id="map"></div>
+    <div class="legend" id="legend"></div>
+    <div style="height:18px"></div>
+
+    <div class="toolbar">
+      <button class="chip on" data-f="all">Усі</button>
+      <span id="chipSlot" style="display:contents"></span>
+      <button class="chip" data-f="fail">⚠ Нерозпізнані</button>
+      <input class="search" id="search" placeholder="Пошук за назвою або адресою...">
+    </div>
+
+    <div id="placeBanner" class="place-banner hide">
+      <span>📍 Фільтр: <span id="placeName"></span></span>
+      <button class="btn btn-ghost" id="clearPlace" style="padding:7px 14px;margin:0">✕ Показати всіх</button>
+    </div>
+
+    <div class="tablebox" id="tablebox">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Клієнт</th><th>Телефон</th><th>Адреса</th>
+            <th>Нас. пункт</th><th>Відділення</th><th>Відстань, км</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="row">
+      <button class="btn btn-add" id="addManualBtn">➕ Додати клієнта вручну</button>
+      <button class="btn btn-green" id="dlBtn">⬇ Завантажити Excel з розподілом</button>
+      <button class="btn btn-ghost" id="copyBtn">📋 Скопіювати зведення</button>
+      <button class="btn btn-red" id="resetBtn">✕ Скинути та завантажити інший файл</button>
+    </div>
+    <div class="note ok" id="noteBox"></div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="ft-title">Відділення УКРСИББАНК · Вінницька область</div>
+    <div class="ft-grid">
+
+      <!-- Вінниця: 7 відділень -->
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+600-%D1%80%D1%96%D1%87%D1%87%D1%8F,+9-%D0%92,+%D0%BA%D0%BE%D1%80%D0%BF.+1,+%D0%BF%D1%80%D0%B8%D0%BC.+66,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F" target="_blank" rel="noopener" style="--c:#00583C">
+        <span class="access" title="Пандус та/або підйомний механізм">♿</span>
+        <em>м. Вінниця</em>
+        <b>Відділення №1020</b>
+        <strong>вул. 600-річчя, 9-В, корп. 1, прим. 66</strong>
+      </a>
+
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+%D0%91%D1%80%D0%B0%D1%86%D0%BB%D0%B0%D0%B2%D1%81%D1%8C%D0%BA%D0%B0,+1,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F" target="_blank" rel="noopener" style="--c:#00583C">
+        <span class="access" title="Пандус та/або підйомний механізм">♿</span>
+        <em>м. Вінниця</em>
+        <b>Відділення №399</b>
+        <strong>вул. Брацлавська, 1</strong>
+      </a>
+
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+%D0%92%E2%80%99%D1%8F%D1%87%D0%B5%D1%81%D0%BB%D0%B0%D0%B2%D0%B0+%D0%A7%D0%BE%D1%80%D0%BD%D0%BE%D0%B2%D0%BE%D0%BB%D0%B0,+29+%D0%B0,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F" target="_blank" rel="noopener" style="--c:#00583C">
+        <em>м. Вінниця</em>
+        <b>Відділення №515</b>
+        <strong>вул. В'ячеслава Чорновола, 29 а</strong>
+      </a>
+
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+%D0%97%D0%B0%D0%BC%D0%BE%D1%81%D1%82%D1%8F%D0%BD%D1%81%D1%8C%D0%BA%D0%B0+(50-%D1%80%D1%96%D1%87%D1%87%D1%8F+%D0%9F%D0%B5%D1%80%D0%B5%D0%BC%D0%BE%D0%B3%D0%B8),+25,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F" target="_blank" rel="noopener" style="--c:#00583C">
+        <span class="access" title="Пандус та/або підйомний механізм">♿</span>
+        <em>м. Вінниця</em>
+        <b>Відділення №313</b>
+        <strong>вул. Замостянська, 25</strong>
+      </a>
+
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+%D0%9A%D0%B5%D0%BB%D0%B5%D1%86%D1%8C%D0%BA%D0%B0,+78+%D0%B0,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F" target="_blank" rel="noopener" style="--c:#00583C">
+        <span class="access" title="Пандус та/або підйомний механізм">♿</span>
+        <em>м. Вінниця</em>
+        <b>Відділення №200</b>
+        <strong>вул. Келецька, 78 а</strong>
+      </a>
+
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+%D0%9F%D0%B8%D1%80%D0%BE%D0%B3%D0%BE%D0%B2%D0%B0,+23,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F" target="_blank" rel="noopener" style="--c:#00583C">
+        <span class="access" title="Пандус та/або підйомний механізм">♿</span>
+        <em>м. Вінниця</em>
+        <b>Відділення №444</b>
+        <strong>вул. Пирогова, 23</strong>
+      </a>
+
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+%D0%A1%D0%BE%D0%B1%D0%BE%D1%80%D0%BD%D0%B0,+22,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8F" target="_blank" rel="noopener" style="--c:#00583C">
+        <span class="access" title="Пандус та/або підйомний механізм">♿</span>
+        <em>м. Вінниця</em>
+        <b>Відділення №333</b>
+        <strong>вул. Соборна, 22</strong>
+      </a>
+
+      <!-- Калинівка -->
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+%D0%9D%D0%B5%D0%B7%D0%B0%D0%BB%D0%B5%D0%B6%D0%BD%D0%BE%D1%81%D1%82%D1%96+(%D0%9B%D0%B5%D0%BD%D1%96%D0%BD%D0%B0),+34,+%D0%9A%D0%B0%D0%BB%D0%B8%D0%BD%D1%96%D0%B2%D0%BA%D0%B0,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8C%D0%BA%D0%B0" target="_blank" rel="noopener" style="--c:#0FB89B">
+        <span class="access" title="Пандус та/або підйомний механізм">♿</span>
+        <em>м. Калинівка</em>
+        <b>Відділення №891</b>
+        <strong>вул. Незалежності, 34</strong>
+      </a>
+
+      <!-- Козятин -->
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+%D0%A1%D0%BA%D0%BB%D1%8F%D1%80%D0%BE%D0%B2%D0%B0,+1,+%D0%9A%D0%BE%D0%B7%D1%8F%D1%82%D0%B8%D0%BD,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8C%D0%BA%D0%B0" target="_blank" rel="noopener" style="--c:#2E86C1">
+        <span class="access" title="Пандус та/або підйомний механізм">♿</span>
+        <em>м. Козятин</em>
+        <b>Відділення №201</b>
+        <strong>вул. Склярова, 1</strong>
+      </a>
+
+      <!-- Бершадь -->
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+%D0%93%D0%B5%D1%80%D0%BE%D1%97%D0%B2+%D0%A3%D0%BA%D1%80%D0%B0%D1%97%D0%BD%D0%B8+(%D0%A0%D0%B0%D0%B4%D1%8F%D0%BD%D1%81%D1%8C%D0%BA%D0%B0),+9,+%D0%91%D0%B5%D1%80%D1%88%D0%B0%D0%B4%D1%8C,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8C%D0%BA%D0%B0" target="_blank" rel="noopener" style="--c:#C0392B">
+        <span class="access" title="Пандус та/або підйомний механізм">♿</span>
+        <em>м. Бершадь</em>
+        <b>Відділення №350</b>
+        <strong>вул. Героїв України, 9</strong>
+      </a>
+
+      <!-- Гайсин -->
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+1-%D0%B3%D0%BE+%D0%A2%D1%80%D0%B0%D0%B2%D0%BD%D1%8F,+69+%D0%B0,+%D0%93%D0%B0%D0%B9%D1%81%D0%B8%D0%BD,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8C%D0%BA%D0%B0" target="_blank" rel="noopener" style="--c:#E0A93B">
+        <em>м. Гайсин</em>
+        <b>Відділення №101</b>
+        <strong>вул. 1-го Травня, 69 а</strong>
+      </a>
+
+      <!-- Немирів -->
+      <a class="ft-cell" href="https://www.google.com/maps/search/?api=1&query=%D0%B2%D1%83%D0%BB.+%D0%93%D0%BE%D1%80%D1%8C%D0%BA%D0%BE%D0%B3%D0%BE,+86,+%D0%9D%D0%B5%D0%BC%D0%B8%D1%80%D1%96%D0%B2,+%D0%92%D1%96%D0%BD%D0%BD%D0%B8%D1%86%D1%8C%D0%BA%D0%B0" target="_blank" rel="noopener" style="--c:#7D3C98">
+        <span class="access" title="Пандус та/або підйомний механізм">♿</span>
+        <em>м. Немирів</em>
+        <b>Відділення №50</b>
+        <strong>вул. Горького, 86</strong>
+      </a>
+
+    </div>
+
+    <div class="ft-bottom">
+      <span class="ft-schedule">🕘 Графік усіх відділень: пн–пт 9:00–17:00</span>
+      <span>© 2026 <strong>УКРСИББАНК</strong> · BNP Paribas Group</span>
+      <a href="mailto:bankgeo.podillia@ukrsibbank.com">bankgeo.podillia@ukrsibbank.com</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* =====================================================
+   ВІДДІЛЕННЯ — назва, координати, фірмовий колір
+===================================================== */
+const BRANCHES = [
+  {name:"Вінниця",   lat:49.2331, lon:28.4682, color:"#00583C"},
+  {name:"Калинівка", lat:49.4496, lon:28.5231, color:"#0FB89B"},
+  {name:"Козятин",   lat:49.7080, lon:28.8337, color:"#2E86C1"},
+  {name:"Бершадь",   lat:48.3722, lon:29.5188, color:"#C0392B"},
+  {name:"Гайсин",    lat:48.8094, lon:29.3905, color:"#E0A93B"},
+  {name:"Немирів",   lat:48.9712, lon:28.8390, color:"#7D3C98"},
+];
+
+/* =====================================================
+   БАЗА НАСЕЛЕНИХ ПУНКТІВ Вінницької області (120+)
+   Покриває всі міста, селища та великі села по всіх
+   колишніх районах області.
+===================================================== */
+const SETTLEMENTS = {
+  /* — міста — */
+  "вінниця":[49.2331,28.4682], "жмеринка":[49.0354,28.1056],
+  "могилів-подільський":[48.4444,27.7958], "хмільник":[49.5560,27.9618],
+  "ладижин":[48.6850,29.2300], "тульчин":[48.6744,28.8497],
+  "бар":[49.0772,27.6803], "іллінці":[49.1058,29.2103],
+  "липовець":[49.2222,29.0539], "погребище":[49.4863,29.2603],
+  "шаргород":[48.7386,28.0826], "ямпіль":[48.2453,28.2780],
+  "гнівань":[49.0828,28.3522], "калинівка":[49.4496,28.5231],
+  "козятин":[49.7080,28.8337], "бершадь":[48.3722,29.5188],
+  "гайсин":[48.8094,29.3905], "немирів":[48.9712,28.8390],
+  "хмельник":[49.5560,27.9618],
+
+  /* — селища міського типу та центри громад — */
+  "тиврів":[49.0119,28.5037], "крижопіль":[48.3897,28.8674],
+  "піщанка":[48.2061,28.8908], "томашпіль":[48.5453,28.5158],
+  "чечельник":[48.2128,29.3656], "тростянець":[48.5128,29.2233],
+  "теплик":[48.6647,29.7442], "оратів":[49.1894,29.5310],
+  "муровані курилівці":[48.7242,27.5184], "чернівці":[48.5383,28.1147],
+  "літин":[49.3247,28.0858], "турбів":[49.2961,28.6800],
+  "стрижавка":[49.2900,28.4800], "вороновиця":[49.1108,28.6803],
+  "браїлів":[49.1097,28.1664], "дашів":[49.0119,29.4256],
+  "вапнярка":[48.5333,28.7333], "сутиски":[49.0489,28.4192],
+  "брацлав":[48.8210,28.9420], "ситківці":[48.8550,29.0760],
+  "печера":[48.8410,28.7110], "шпиків":[48.7720,28.5650],
+  "уланів":[49.6470,27.9050], "копайгород":[48.8650,27.7860],
+  "джурин":[48.6700,28.2730], "мурафа":[48.7570,28.2210],
+  "вендичани":[48.5650,27.8120], "озаринці":[48.5070,27.8740],
+  "яришів":[48.5380,27.7080], "дзигівка":[48.3290,28.3270],
+  "цекинівка":[48.2120,28.3060], "городківка":[48.4140,28.7660],
+  "ольгопіль":[48.2330,29.4660], "кирнасівка":[48.5990,28.9120],
+  "глухівці":[49.6710,28.7080], "махнівка":[49.6390,28.6580],
+  "самгородок":[49.6230,29.0390], "бродецьке":[49.6480,28.9620],
+  "іванів":[49.4830,28.2470], "корделівка":[49.5180,28.4670],
+  "павлівка":[49.3990,28.4150], "хомутинці":[49.4520,28.3640],
+
+  /* — села Вінницького району — */
+  "якушинці":[49.2480,28.3680], "агрономічне":[49.1942,28.3897],
+  "зарванці":[49.2206,28.4031], "вінницькі хутори":[49.2079,28.5345],
+  "десна":[49.2547,28.5950], "лука-мелешківська":[49.1830,28.5450],
+  "сосонка":[49.3210,28.5640], "гавришівка":[49.2410,28.6120],
+  "писарівка":[49.1640,28.4350], "майдан":[49.2750,28.3450],
+  "стадниця":[49.3060,28.5230], "медвеже вушко":[49.1530,28.3720],
+  "слобода-шаргородська":[48.7150,28.0560], "пирогів":[49.2050,28.4380],
+  "малі хутори":[49.2180,28.5050], "щітки":[49.1750,28.4480],
+  "шкуринці":[49.2630,28.3890], "переорки":[49.2820,28.4260],
+  "комарів":[49.1990,28.2940], "лисогора":[49.1300,28.3530],
+
+  /* — Калинівська та Хмільницька громади — */
+  "соснівка":[49.4570,28.5500], "нова гребля":[49.5290,28.4310],
+  "дружелюбівка":[49.4170,28.6210], "пиків":[49.5470,28.6730],
+  "журавне":[49.5050,28.7570], "жданівка":[49.6120,28.1180],
+  "війтівці":[49.6230,28.0890], "сальниця":[49.6770,27.8460],
+  "куманівці":[49.6290,27.7990], "великий митник":[49.5670,27.9990],
+
+  /* — Козятинська громада — */
+  "махаринці":[49.7570,28.7610], "сестринівка":[49.6760,28.8910],
+  "вернигородок":[49.7390,29.0040], "залізничне":[49.7110,28.8480],
+  "білопілля":[49.6530,28.7770], "переорки козятинські":[49.7180,28.8990],
+
+  /* — Літинська громада — */
+  "кожухів":[49.3450,27.9680], "сосни":[49.3690,28.1240],
+  "багринівці":[49.3870,27.9920], "микулинці":[49.3260,28.2080],
+
+  /* — Барська та Жмеринська громади — */
+  "ялтушків":[48.9870,27.5610], "верхівка барська":[49.0210,27.7460],
+  "станіславчик":[48.9650,28.0090], "северинівка":[49.0930,28.2370],
+  "межирів":[49.0220,28.0480], "носківці":[49.1380,28.1850],
+  "чернятин":[49.1490,28.0270], "мовчани":[49.0710,28.1700],
+
+  /* — Шаргородська громада — */
+  "рахни-лісові":[48.8270,28.3230], "пеньківка":[48.7960,28.1810],
+  "деребчин":[48.6890,28.1820], "плебанівка":[48.7510,28.0490],
+
+  /* — Могилів-Подільська округа — */
+  "бронниця":[48.4140,27.8740], "серебрія":[48.4710,27.7150],
+  "немія":[48.4530,27.8160], "сказинці":[48.4870,27.8390],
+  "мазурівка":[48.5230,28.0670], "бабчинці":[48.3710,27.9540],
+  "моївка":[48.4350,28.0940],
+
+  /* — Ямпільська та Крижопільська округи — */
+  "клембівка":[48.3120,28.4080], "гонорівка":[48.2810,28.4790],
+  "качківка":[48.3270,28.2300], "заболотне":[48.4480,28.8770],
+  "соколівка крижопільська":[48.4030,28.9410],
+
+  /* — Томашпільська та Тульчинська громади — */
+  "комаргород":[48.5170,28.4470], "вила":[48.5790,28.4990],
+  "стіна":[48.4380,28.5670], "марківка томашпільська":[48.5550,28.6320],
+  "суворовське":[48.6230,28.7820], "кинашів":[48.7090,28.8730],
+  "нестерварка":[48.6620,28.8260], "клебань":[48.7180,28.7930],
+  "копіївка":[48.5880,29.0810],
+
+  /* — Тростянецька та Чечельницька громади — */
+  "демківка":[48.5560,29.1330], "капустяни":[48.5310,29.3070],
+  "ободівка":[48.4060,29.2470], "торків":[48.6320,28.9580],
+  "вербка":[48.2510,29.2440], "куренівка":[48.2750,29.3940],
+
+  /* — Бершадська громада — */
+  "джулинка":[48.3680,29.7280], "красносілка":[48.4480,29.4790],
+  "усті":[48.3380,29.4400], "пятківка":[48.4250,29.6010],
+  "флорине":[48.3160,29.5760], "війтівка":[48.4060,29.5530],
+  "баланівка":[48.3290,29.6440], "поташня":[48.4400,29.3850],
+
+  /* — Гайсинська громада — */
+  "кунка":[48.7780,29.2740], "зятківці":[48.7280,29.2160],
+  "кузьминці":[48.8480,29.3260], "михайлівка гайсинська":[48.7700,29.4480],
+  "гранів":[48.8770,29.5070], "чечелівка":[48.8240,29.4720],
+  "карбівка":[48.7440,29.3540], "губник":[48.7820,29.1450],
+  "сокілець":[48.8430,29.1880],
+
+  /* — Теплицька громада — */
+  "кублич":[48.6840,29.5740], "соболівка":[48.5950,29.6390],
+  "завадівка":[48.7040,29.6920], "степанівка теплицька":[48.6360,29.8060],
+
+  /* — Ладижинська округа — */
+  "лукашівка":[48.7180,29.1860], "білоусівка":[48.6510,29.1280],
+  "зеленче":[48.6940,29.2710],
+
+  /* — Іллінецька громада — */
+  "жорнище":[49.0560,29.1370], "кальник":[49.0260,29.2750],
+  "бабин":[49.1480,29.1620], "леухи":[49.0820,29.3380],
+  "китайгород":[48.9560,29.2880],
+
+  /* — Оратівська громада — */
+  "підвисоке":[49.2470,29.4530], "чагів":[49.1410,29.6080],
+  "балабанівка":[49.2700,29.5970],
+
+  /* — Погребищенська громада — */
+  "дзюньків":[49.5310,29.4170], "плисків":[49.5750,29.3210],
+  "новофастів":[49.4480,29.3680], "ширмівка":[49.5180,29.1690],
+
+  /* — Липовецька громада — */
+  "зозів":[49.1820,29.0150], "россоше":[49.2580,28.9450],
+  "вахнівка":[49.3380,28.8990], "славна":[49.2890,29.1240],
+
+  /* — Немирівська громада — */
+  "ковалівка немирівська":[48.9230,28.7530], "стрільчинці":[48.9050,28.9890],
+  "мухівці":[49.0380,28.7720], "ситківці немирівські":[48.8550,29.0760],
+  "райгород":[48.8870,28.8730], "чуків":[49.0240,28.9270],
+  "бондурівка":[48.9450,28.6760],
+
+  /* — Тиврівська громада — */
+  "шершні":[49.0530,28.4830], "василівка тиврівська":[48.9560,28.4590],
+  "пилява":[49.0670,28.5680], "красне":[49.0860,28.6240],
+  "довгополівка":[48.9290,28.5460], "рахни":[48.8930,28.4790],
+  "ворошилівка":[49.0270,28.3740], "селище тиврівське":[48.9870,28.5210],
+};
+
+/* ===== Відстань між координатами (формула гаверсинуса) ===== */
+function distanceKm(lat1,lon1,lat2,lon2){
+  const R=6371, t=d=>d*Math.PI/180;
+  const dLat=t(lat2-lat1), dLon=t(lon2-lon1);
+  const a=Math.sin(dLat/2)**2+Math.cos(t(lat1))*Math.cos(t(lat2))*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+/* ===== Дістаємо назву населеного пункту з адреси ===== */
+function extractSettlement(address){
+  if(!address) return null;
+  let a=String(address).toLowerCase().replace(/['’ʼ`]/g,"").replace(/\s+/g," ");
+  const pats=[
+    /(?:^|[,;\s])м\.\s*([а-яіїєґ\- ]+?)(?:[,;]|$| вул| просп| пров)/,
+    /місто\s+([а-яіїєґ\- ]+?)(?:[,;]|$| вул| просп| пров)/,
+    /смт\.?\s*([а-яіїєґ\- ]+?)(?:[,;]|$| вул| просп| пров)/,
+    /(?:^|[,;\s])с\.\s*([а-яіїєґ\- ]+?)(?:[,;]|$| вул| просп| пров)/,
+    /село\s+([а-яіїєґ\- ]+?)(?:[,;]|$| вул| просп| пров)/,
+    /селище\s+([а-яіїєґ\- ]+?)(?:[,;]|$| вул| просп| пров)/,
+  ];
+  for(const p of pats){ const m=a.match(p); if(m) return m[1].trim(); }
+  for(const n in SETTLEMENTS){ if(a.includes(n)) return n; }
+  return null;
+}
+
+/* ===== Закріплюємо клієнта за найближчим відділенням ===== */
+function assignBranch(address){
+  const s=extractSettlement(address);
+  if(!s) return {ok:false};
+  const coords=SETTLEMENTS[s.trim()];
+  if(!coords) return {ok:false, settlement:s};
+  let best=null;
+  for(const b of BRANCHES){
+    const d=distanceKm(coords[0],coords[1],b.lat,b.lon);
+    if(!best||d<best.dist) best={branch:b, dist:d};
+  }
+  return {ok:true, settlement:s, branch:best.branch, dist:best.dist, coords};
+}
+
+/* ===== Демо-дані ===== */
+const DEMO=[
+  ["ФОП Коваленко Ірина Петрівна","Вінницька обл., м. Вінниця, вул. Соборна, 15","+380 (67) 412-58-90"],
+  ["ТОВ \"АгроСвіт Поділля\"","Вінницька обл., Гайсинський р-н, м. Гайсин, вул. 1 Травня, 22","+380 (50) 337-21-04"],
+  ["ФОП Мельник Олег Іванович","Вінницька обл., Хмільницький р-н, м. Хмільник, вул. Пушкіна, 8","+380 (98) 156-77-33"],
+  ["ТОВ \"Козятин-Агро\"","Вінницька обл., м. Козятин, вул. Героїв Майдану, 5","+380 (63) 904-12-58"],
+  ["ФОП Бондар Світлана Василівна","Вінницька обл., м. Бершадь, вул. Покровська, 41","+380 (73) 218-65-41"],
+  ["ПП \"Немирівські сади\"","Вінницька обл., м. Немирів, вул. Шевченка, 12","+380 (95) 643-09-12"],
+  ["ФОП Ткачук Андрій Миколайович","Вінницька обл., смт Турбів, вул. Миру, 3","+380 (67) 781-34-26"],
+  ["ТОВ \"Ладижин-Буд\"","Вінницька обл., м. Ладижин, просп. Незалежності, 9","+380 (50) 492-18-09"],
+  ["ФОП Шевчук Марія Олександрівна","Вінницька обл., м. Тульчин, вул. Леонтовича, 27","+380 (98) 305-77-21"],
+  ["ТОВ \"Жмеринка-Транс\"","Вінницька обл., м. Жмеринка, вул. Київська, 4","+380 (63) 117-44-50"],
+  ["ФОП Поліщук Дмитро Сергійович","Вінницька обл., Вінницький р-н, с. Стрижавка, вул. Лісова, 18","+380 (73) 826-19-37"],
+  ["ТОВ \"Бар-Продукт\"","Вінницька обл., м. Бар, вул. Святого Миколая, 33","+380 (95) 274-63-08"],
+  ["ФОП Романюк Тетяна Юріївна","Вінницька обл., смт Брацлав, вул. Соборна, 7","+380 (67) 530-91-44"],
+  ["ПП \"Могилів-Експорт\"","Вінницька обл., м. Могилів-Подільський, вул. Ринкова, 2","+380 (50) 668-25-13"],
+  ["ФОП Савчук Віктор Анатолійович","Вінницька обл., смт Літин, вул. Незалежності, 14","+380 (98) 743-50-26"],
+];
+
+/* =====================================================
+   ІНТЕРФЕЙС
+===================================================== */
+const $=id=>document.getElementById(id);
+let RESULTS=[], FILTER="all", QUERY="", PLACE=null;
+let MAP=null, MAPLAYERS=null;
+
+$("branchList").innerHTML=BRANCHES.map(b=>
+  `<div class="branch" style="--dot:${b.color}"><b>${b.name}</b><span>УКРСИББАНК</span></div>`
+).join("");
+
+$("chipSlot").innerHTML=BRANCHES.map(b=>
+  `<button class="chip" data-f="${b.name}">${b.name}</button>`
+).join("");
+
+$("drop").onclick=()=>$("file").click();
+$("drop").ondragover=e=>{e.preventDefault();$("drop").classList.add("over")};
+$("drop").ondragleave=()=>$("drop").classList.remove("over");
+$("drop").ondrop=e=>{
+  e.preventDefault();$("drop").classList.remove("over");
+  if(e.dataTransfer.files.length) readFile(e.dataTransfer.files[0]);
+};
+$("file").onchange=e=>{ if(e.target.files.length) readFile(e.target.files[0]); };
+$("demoBtn").onclick=()=>{
+  showFileChip("Демо-дані · 15 клієнтів");
+  process(DEMO.map(r=>({name:r[0],address:r[1],phone:r[2]||""})));
+};
+
+// показ плашки з назвою обраного файлу
+function showFileChip(text){
+  $("fileName").textContent=text;
+  $("fileChip").classList.remove("hide");
+}
+
+function readFile(file){
+  showFileChip(file.name);
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array"});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:""});
+      if(rows.length<2){alert("Файл порожній");return}
+      const header=rows[0].map(h=>String(h).toLowerCase());
+      let addrIdx=header.findIndex(h=>h.includes("адрес"));
+      let nameIdx=header.findIndex(h=>h.includes("назв")||h.includes("піб")||h.includes("найменування"));
+      let phoneIdx=header.findIndex(h=>h.includes("телефон")||h.includes("тел.")||h.includes("номер"));
+      if(addrIdx===-1) addrIdx=rows[1].findIndex(c=>String(c).toLowerCase().includes("обл"));
+      if(addrIdx===-1){alert("Не знайшов колонку з адресою. Додайте заголовок «Адреса».");return}
+      if(nameIdx===-1) nameIdx=0;
+      const clients=rows.slice(1).filter(r=>r[addrIdx])
+        .map(r=>({name:String(r[nameIdx]||"—"),address:String(r[addrIdx]),
+                  phone:phoneIdx!==-1?String(r[phoneIdx]||""):""}));
+      process(clients);
+    }catch(err){alert("Помилка читання файлу: "+err.message)}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function process(clients){
+  RESULTS=clients.map(c=>{
+    const r=assignBranch(c.address);
+    return {
+      name:c.name, address:c.address, phone:c.phone||"", ok:r.ok,
+      settlement:r.settlement?cap(r.settlement):"",
+      branchName:r.ok?r.branch.name:"",
+      color:r.ok?r.branch.color:"",
+      dist:r.ok?+r.dist.toFixed(1):null,
+      coords:r.coords||null,
+    };
+  });
+  FILTER="all"; QUERY=""; PLACE=null; $("search").value="";
+  document.querySelectorAll(".chip").forEach(ch=>ch.classList.toggle("on",ch.dataset.f==="all"));
+  $("resultCard").classList.remove("hide");
+  renderStats(); renderTable();
+  /* карту малюємо після показу картки, інакше Leaflet не знає розмір */
+  setTimeout(renderMap, 60);
+  const failed=RESULTS.filter(r=>!r.ok).length;
+  const nb=$("noteBox");
+  if(failed){
+    nb.className="note warn";
+    nb.textContent=`⚠ ${failed} адрес(и) не розпізнано — позначені «не визначено». У вивантаженні вони матимуть статус «ПОТРЕБУЄ РУЧНОЇ ПЕРЕВІРКИ».`;
+  }else{
+    nb.className="note ok";
+    nb.textContent=`✓ Усі ${RESULTS.length} адрес розпізнано. Розподіл виконано за найкоротшою відстанню до відділення.`;
+  }
+  $("resultCard").scrollIntoView({behavior:"smooth"});
+}
+
+function renderStats(){
+  const counts={}; BRANCHES.forEach(b=>counts[b.name]=0);
+  let failed=0;
+  RESULTS.forEach(r=>r.ok?counts[r.branchName]++:failed++);
+  const max=Math.max(1,...Object.values(counts));
+  $("stats").innerHTML=`
+    <div class="stat" style="--top:#15201C">
+      <div class="num">${RESULTS.length}</div><div class="lbl">Всього клієнтів</div>
+      <div class="bar"><i style="width:100%;background:#15201C"></i></div>
+    </div>
+    ${BRANCHES.map(b=>`
+      <div class="stat" style="--top:${b.color}">
+        <div class="num">${counts[b.name]}</div><div class="lbl">${b.name}</div>
+        <div class="bar"><i data-w="${counts[b.name]/max*100}"></i></div>
+      </div>`).join("")}
+    ${failed?`<div class="stat" style="--top:#C0392B">
+      <div class="num">${failed}</div><div class="lbl">Нерозпізнані</div>
+      <div class="bar"><i data-w="${failed/max*100}" style="background:#C0392B"></i></div>
+    </div>`:""}
+  `;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll(".stat .bar i[data-w]").forEach(i=>i.style.width=i.dataset.w+"%");
+  }));
+}
+
+/* =====================================================
+   СПРАВЖНЯ КАРТА (Leaflet + OpenStreetMap)
+===================================================== */
+function renderMap(){
+  if(typeof L==="undefined"){ // якщо немає інтернету — повідомляємо
+    $("map").innerHTML='<div style="padding:40px;text-align:center;color:var(--muted)">Карта потребує інтернет-з\'єднання (OpenStreetMap)</div>';
+    $("map").style.height="auto";
+    return;
+  }
+
+  /* створюємо карту один раз */
+  if(!MAP){
+    /* межі області з невеликим запасом — карта не їде далеко, але тайли заповнюють контейнер */
+    const OBLAST_BOUNDS = L.latLngBounds([47.95, 27.15], [49.95, 30.15]);
+    MAP=L.map("map",{
+      scrollWheelZoom:true,
+      wheelDebounceTime:30,
+      wheelPxPerZoomLevel:90,
+      maxBounds:OBLAST_BOUNDS,
+      maxBoundsViscosity:0.6,
+      minZoom:7, maxZoom:14,
+      attributionControl:false
+    }).setView([48.95,28.65],8);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+      maxZoom:18,
+      attribution:'© OpenStreetMap'
+    }).addTo(MAP);
+    MAPLAYERS=L.layerGroup().addTo(MAP);
+  }
+  MAPLAYERS.clearLayers();
+
+  /* групуємо клієнтів по населених пунктах */
+  const dots={};
+  RESULTS.forEach(r=>{
+    if(!r.coords) return;
+    const k=r.coords.join(",");
+    if(!dots[k]) dots[k]={lat:r.coords[0],lon:r.coords[1],color:r.color,
+                          branch:r.branchName,n:0,settlement:r.settlement};
+    dots[k].n++;
+  });
+
+  const bounds=[];
+
+  /* лінії клієнт → відділення */
+  for(const k in dots){
+    const d=dots[k];
+    const b=BRANCHES.find(b=>b.name===d.branch);
+    if(b) L.polyline([[d.lat,d.lon],[b.lat,b.lon]],{
+      color:d.color,opacity:.3,weight:2
+    }).addTo(MAPLAYERS);
+  }
+
+  /* кружечки клієнтів (розмір залежить від кількості) */
+  for(const k in dots){
+    const d=dots[k];
+    const marker=L.circleMarker([d.lat,d.lon],{
+      radius:Math.min(20,7+Math.sqrt(d.n)*3),
+      color:"#fff",weight:2,fillColor:d.color,fillOpacity:.88
+    }).bindPopup(
+      `<b style="font-size:14px">${d.settlement}</b><br>`+
+      `Клієнтів: <b>${d.n}</b><br>`+
+      `Відділення: <b style="color:${d.color}">${d.branch}</b><br>`+
+      `<span style="color:#5C6E66;font-size:12px">Натисніть, щоб показати лише цих клієнтів ↓</span>`
+    ).addTo(MAPLAYERS);
+    // клік на точку → фільтруємо таблицю за цим населеним пунктом
+    marker.on("click",()=>{
+      QUERY=""; $("search").value="";
+      applyFilter({filter:"all", place:d.settlement});
+      $("tablebox").scrollIntoView({behavior:"smooth",block:"center"});
+    });
+    bounds.push([d.lat,d.lon]);
+  }
+
+  /* маркери відділень — квадрати з білою рамкою + підпис */
+  // підрахунок клієнтів кожного відділення для попапа
+  const branchCounts={}; BRANCHES.forEach(b=>branchCounts[b.name]=0);
+  RESULTS.forEach(r=>{ if(r.ok) branchCounts[r.branchName]++; });
+
+  BRANCHES.forEach(b=>{
+    const bm=L.marker([b.lat,b.lon],{
+      icon:L.divIcon({
+        className:"",
+        html:`<div class="bmarker" style="background:${b.color}">🏦</div>`,
+        iconSize:[36,36], iconAnchor:[18,18],
+      }),
+      zIndexOffset:1000
+    }).bindTooltip(b.name,{
+      permanent:true, direction:"top", offset:[0,-16], className:"blabel"
+    }).bindPopup(
+      `<b style="font-size:14px;color:${b.color}">🏦 Відділення ${b.name}</b><br>`+
+      `Закріплено клієнтів: <b>${branchCounts[b.name]}</b><br>`+
+      `<span style="color:#5C6E66;font-size:12px">Натисніть, щоб показати всіх клієнтів відділення ↓</span>`
+    ).addTo(MAPLAYERS);
+    // клік на значок відділення → таблиця показує всіх клієнтів цього відділення
+    bm.on("click",()=>{
+      QUERY=""; $("search").value="";
+      applyFilter({filter:b.name, place:null});
+      $("tablebox").scrollIntoView({behavior:"smooth",block:"center"});
+    });
+    bounds.push([b.lat,b.lon]);
+  });
+
+  /* підлаштовуємо карту під точки області */
+  if(bounds.length){
+    MAP.fitBounds(L.latLngBounds(bounds).pad(0.12),{padding:[30,30],maxZoom:11});
+  }
+  setTimeout(()=>MAP.invalidateSize(),90);
+
+  $("legend").innerHTML=BRANCHES.map(b=>
+    `<span><i style="background:${b.color}"></i>${b.name}</span>`
+  ).join("")+`<span style="margin-left:auto">🏦 відділення (клік — усі клієнти відділення) · ● клієнти (клік — клієнти пункту)</span>`;
+}
+
+function renderTable(){
+  const q=QUERY.toLowerCase();
+  // банер активного фільтра (за населеним пунктом АБО за відділенням)
+  const banner=$("placeBanner");
+  if(PLACE){
+    banner.classList.remove("hide");
+    $("placeName").textContent="пункт " + PLACE;
+  }else if(FILTER!=="all"){
+    banner.classList.remove("hide");
+    $("placeName").textContent = FILTER==="fail" ? "нерозпізнані адреси" : "відділення " + FILTER;
+  }else{
+    banner.classList.add("hide");
+  }
+  const rows=RESULTS
+    .map((r,i)=>({...r, idx:i+1}))
+    .filter(r=>{
+      if(PLACE && r.settlement!==PLACE) return false;
+      if(FILTER==="fail"&&r.ok) return false;
+      if(FILTER!=="all"&&FILTER!=="fail"&&r.branchName!==FILTER) return false;
+      if(q && !(r.name.toLowerCase().includes(q)||r.address.toLowerCase().includes(q)||(r.phone||"").toLowerCase().includes(q))) return false;
+      return true;
+    });
+  $("tbody").innerHTML=rows.length?rows.map(r=>`
+    <tr>
+      <td>${r.idx}</td>
+      <td><b>${esc(r.name)}</b></td>
+      <td style="white-space:nowrap">${r.phone?esc(r.phone):"<span style='color:var(--muted)'>—</span>"}</td>
+      <td style="color:var(--muted)">${esc(r.address)}</td>
+      <td>${r.settlement||"—"}</td>
+      <td>
+        ${r.ok?`<span class="pill" style="--pc:${r.color}">${r.branchName}</span>`:`<span class="err">не визначено</span>`}
+        ${r.manual?`<span class="manual-badge" title="${esc(r.manualNote||"Закріплено вручну")}">✋ вручну</span>`:""}
+        <button class="row-edit" data-edit="${r.idx-1}" title="Змінити відділення" type="button">✎</button>
+      </td>
+      <td><b>${r.dist??"—"}</b></td>
+    </tr>`).join("")
+    :`<tr><td colspan="7" style="text-align:center;padding:26px;color:var(--muted)">Нічого не знайдено за цим фільтром</td></tr>`;
+}
+
+/* єдина точка керування фільтром — гарантує синхронність чіпів, банера й таблиці */
+function applyFilter({filter, place}){
+  if(filter!==undefined) FILTER=filter;
+  if(place!==undefined)  PLACE=place;
+  // якщо обрано фільтр-відділення або точку — підсвічуємо потрібний чіп
+  const chipKey = PLACE ? null : FILTER;   // при фільтрі за точкою активним лишається "Усі"
+  document.querySelectorAll(".chip").forEach(c=>
+    c.classList.toggle("on", chipKey!==null && c.dataset.f===chipKey)
+  );
+  renderTable();
+}
+
+document.addEventListener("click",e=>{
+  const chip=e.target.closest(".chip");
+  if(!chip) return;
+  QUERY=""; $("search").value="";
+  applyFilter({filter:chip.dataset.f, place:null});
+});
+$("clearPlace").onclick=(e)=>{
+  e.preventDefault();
+  // Один шлях скидання — через applyFilter, щоб чіп "Усі", банер і таблиця були в одному стані.
+  QUERY=""; $("search").value="";
+  applyFilter({filter:"all", place:null});
+};
+$("search").oninput=e=>{QUERY=e.target.value;renderTable()};
+
+$("dlBtn").onclick=()=>{
+  const data=[["Клієнт","Телефон","Адреса","Населений пункт","Відділення","Відстань, км"],
+    ...RESULTS.map(r=>[r.name,r.phone||"",r.address,r.settlement,
+      r.ok?r.branchName:"ПОТРЕБУЄ РУЧНОЇ ПЕРЕВІРКИ", r.dist??""])];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws["!cols"]=[{wch:36},{wch:20},{wch:56},{wch:20},{wch:28},{wch:12}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Розподіл");
+  const counts={}; BRANCHES.forEach(b=>counts[b.name]=0);
+  RESULTS.forEach(r=>{if(r.ok)counts[r.branchName]++});
+  const sum=[["Відділення","Кількість клієнтів"],
+    ...BRANCHES.map(b=>[b.name,counts[b.name]]),
+    ["Нерозпізнані",RESULTS.filter(r=>!r.ok).length],
+    ["ВСЬОГО",RESULTS.length]];
+  const ws2=XLSX.utils.aoa_to_sheet(sum);
+  ws2["!cols"]=[{wch:22},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws2,"Зведення");
+  XLSX.writeFile(wb,"rozpodil_kliyentiv.xlsx");
+};
+
+$("copyBtn").onclick=()=>{
+  const counts={}; BRANCHES.forEach(b=>counts[b.name]=0);
+  RESULTS.forEach(r=>{if(r.ok)counts[r.branchName]++});
+  const text=`Розподіл клієнтів (${new Date().toLocaleDateString("uk-UA")}):\n`+
+    BRANCHES.map(b=>`• ${b.name}: ${counts[b.name]}`).join("\n")+
+    `\nНерозпізнані: ${RESULTS.filter(r=>!r.ok).length}\nВсього: ${RESULTS.length}`;
+  navigator.clipboard.writeText(text).then(()=>{
+    const b=$("copyBtn"), old=b.textContent;
+    b.textContent="✓ Скопійовано!";
+    setTimeout(()=>b.textContent=old,1800);
+  });
+};
+
+$("resetBtn").onclick=()=>{
+  RESULTS=[]; $("resultCard").classList.add("hide");
+  $("fileName").textContent=""; $("file").value=""; $("fileChip").classList.add("hide");
+  window.scrollTo({top:0,behavior:"smooth"});
+};
+
+function cap(s){return s.split(" ").map(w=>w[0]?w[0].toUpperCase()+w.slice(1):w).join(" ")
+  .split("-").map(w=>w[0]?w[0].toUpperCase()+w.slice(1):w).join("-")}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+
+</script>
+
+<!-- Модалка «Додати клієнта вручну» -->
+<div class="modal-bg hide" id="manualModal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="modal">
+    <button class="modal-close" id="mClose" type="button" aria-label="Закрити">×</button>
+    <h3 id="mTitle">➕ Додати клієнта вручну</h3>
+    <p class="modal-sub">
+      Для випадків, коли клієнт має бути закріплений за певним відділенням не за географічним принципом
+      (наприклад, велике ЮО з філіями по області, головний офіс якого обслуговується у Вінниці,
+      або клієнт зі специфічною потребою обслуговування).
+    </p>
+
+    <div class="modal-err hide" id="mErr"></div>
+
+    <div class="m-field">
+      <label for="mName">Назва підприємства / ФОП / ТОВ</label>
+      <input type="text" id="mName" placeholder="ТОВ «АГРО-ПОДІЛЛЯ»" maxlength="120" required>
+    </div>
+
+    <div class="m-grid">
+      <div class="m-field">
+        <label for="mAddress">Адреса (опціонально)</label>
+        <input type="text" id="mAddress" placeholder="м. Вінниця, вул. Соборна, 70" maxlength="180">
+      </div>
+      <div class="m-field">
+        <label for="mPhone">Телефон (опц.)</label>
+        <input type="text" id="mPhone" placeholder="+380 ..." maxlength="40">
+      </div>
+    </div>
+
+    <div class="m-field">
+      <label>Закріпити за відділенням</label>
+      <div class="branch-pick" id="branchPick"></div>
+    </div>
+
+    <div class="m-field">
+      <label for="mNote">Причина ручного закріплення (опц.)</label>
+      <input type="text" id="mNote" placeholder="Філії по області, обслуговування у Вінниці" maxlength="160">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="mCancel" type="button">Скасувати</button>
+      <button class="btn btn-green" id="mSubmit" type="button">Закріпити клієнта →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     Скрипт ручного додавання — окремо ПІСЛЯ HTML модалки,
+     щоб усі id (#manualModal, #mClose, #mCancel...) гарантовано
+     існували на момент привʼязки обробників.
+============================================================ -->
+<script>
+(function manualAddFeature(){
+  "use strict";
+  const $ = id => document.getElementById(id);
+  let editIdx = -1;          // -1 → додаємо нового; інакше — редагуємо RESULTS[editIdx]
+  let chosenBranch = null;
+
+  /* ---------- Рендер чіпів вибору відділення ---------- */
+  function renderBranchPicker(){
+    const slot = $("branchPick");
+    if (!slot) return;
+    slot.innerHTML = BRANCHES.map(b => `
+      <label class="branch-opt" data-branch="${b.name.replace(/"/g,"&quot;")}" style="--bc:${b.color}">
+        <span class="dot"></span>
+        <span>${b.name}</span>
+      </label>`).join("");
+    slot.querySelectorAll(".branch-opt").forEach(opt => {
+      opt.addEventListener("click", () => {
+        slot.querySelectorAll(".branch-opt").forEach(o => o.classList.remove("on"));
+        opt.classList.add("on");
+        chosenBranch = opt.dataset.branch;
+      });
+    });
+  }
+
+  /* ---------- Відкриття модалки ---------- */
+  function openManualModal(idx){
+    editIdx = (typeof idx === "number" && !isNaN(idx)) ? idx : -1;
+    const isEdit = editIdx >= 0;
+    const r = isEdit ? RESULTS[editIdx] : null;
+
+    $("mTitle").textContent  = isEdit ? "✎ Змінити відділення клієнта" : "➕ Додати клієнта вручну";
+    $("mSubmit").textContent = isEdit ? "Зберегти зміни" : "Закріпити клієнта →";
+
+    $("mName").value    = r ? r.name : "";
+    $("mAddress").value = r ? (r.address && r.address !== "—" ? r.address : "") : "";
+    $("mPhone").value   = r ? r.phone : "";
+    $("mNote").value    = r ? (r.manualNote || "") : "";
+
+    chosenBranch = r && r.ok ? r.branchName : null;
+    document.querySelectorAll(".branch-opt").forEach(o => {
+      o.classList.toggle("on", o.dataset.branch === chosenBranch);
+    });
+
+    $("mName").disabled    = isEdit;
+    $("mAddress").disabled = isEdit;
+    $("mPhone").disabled   = isEdit;
+
+    $("mErr").classList.add("hide");
+    $("manualModal").classList.remove("hide");
+    setTimeout(() => {
+      const target = isEdit ? document.querySelector(".branch-opt") : $("mName");
+      if (target) target.focus();
+    }, 60);
+  }
+
+  function closeManualModal(){ $("manualModal").classList.add("hide"); }
+
+  function showManualErr(msg){
+    $("mErr").innerHTML = `<span>⛔</span><span>${msg}</span>`;
+    $("mErr").classList.remove("hide");
+  }
+
+  /* ---------- Збереження ---------- */
+  function saveManual(){
+    const isEdit = editIdx >= 0;
+    const name    = $("mName").value.trim();
+    const address = $("mAddress").value.trim();
+    const phone   = $("mPhone").value.trim();
+    const note    = $("mNote").value.trim();
+
+    if (!isEdit && !name){ showManualErr("Вкажіть назву ФОП / ТОВ / підприємства."); return; }
+    if (!chosenBranch){ showManualErr("Оберіть відділення банку."); return; }
+
+    const branch = BRANCHES.find(b => b.name === chosenBranch);
+    if (!branch){ showManualErr("Обране відділення не знайдено."); return; }
+
+    if (isEdit){
+      const r = RESULTS[editIdx];
+      r.ok = true;
+      r.branchName = branch.name;
+      r.color = branch.color;
+      r.manual = true;
+      r.manualNote = note || r.manualNote || "Перенаправлено вручну";
+      r.dist = null;
+      if (!r.coords){
+        r.coords = [branch.lat + (Math.random()-0.5)*0.02, branch.lon + (Math.random()-0.5)*0.025];
+        if (!r.settlement) r.settlement = branch.name;
+      }
+    } else {
+      let coords = null, settlement = "";
+      if (address && typeof assignBranch === "function"){
+        const geo = assignBranch(address);
+        if (geo.ok && geo.coords) coords = geo.coords;
+        if (geo.settlement) settlement = (typeof cap === "function") ? cap(geo.settlement) : geo.settlement;
+      }
+      if (!coords){
+        coords = [branch.lat + (Math.random()-0.5)*0.02, branch.lon + (Math.random()-0.5)*0.025];
+        if (!settlement) settlement = address ? "За адресою" : branch.name;
+      }
+      RESULTS.push({
+        name, address: address || "—", phone, ok: true,
+        settlement, branchName: branch.name, color: branch.color,
+        dist: null, coords, manual: true, manualNote: note,
+      });
+    }
+
+    $("resultCard").classList.remove("hide");
+    document.querySelectorAll(".chip").forEach(ch => ch.classList.toggle("on", ch.dataset.f === FILTER));
+    renderStats(); renderTable();
+    setTimeout(renderMap, 30);
+
+    const nb = $("noteBox");
+    nb.className = "note ok";
+    nb.textContent = isEdit
+      ? `✓ Клієнта «${RESULTS[editIdx].name}» перенаправлено до відділення ${branch.name}.`
+      : `✓ Клієнта «${name}» закріплено за відділенням ${branch.name} вручну.`;
+
+    closeManualModal();
+    const tb = $("tablebox");
+    if (tb) tb.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  /* ---------- Привʼязка обробників ---------- */
+  renderBranchPicker();
+
+  // Головна кнопка ➕
+  const addBtn = $("addManualBtn");
+  if (addBtn){
+    addBtn.addEventListener("click", () => openManualModal(-1));
+  } else {
+    console.warn("[manualAdd] addManualBtn не знайдено");
+  }
+
+  // Закриття модалки
+  $("mClose").addEventListener("click", closeManualModal);
+  $("mCancel").addEventListener("click", closeManualModal);
+  $("mSubmit").addEventListener("click", saveManual);
+  $("manualModal").addEventListener("click", e => {
+    if (e.target.id === "manualModal") closeManualModal();
+  });
+
+  // Делегований клік по ✎ у будь-якому рядку таблиці
+  $("tbody").addEventListener("click", e => {
+    const btn = e.target.closest(".row-edit");
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.edit, 10);
+    if (!isNaN(idx)) openManualModal(idx);
+  });
+
+  // Esc — закрити модалку
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !$("manualModal").classList.contains("hide")) closeManualModal();
+  });
+})();
+</script>
+
+</body>
+</html>
